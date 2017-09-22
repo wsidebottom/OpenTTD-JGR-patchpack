@@ -67,6 +67,7 @@ void EndSpriteCombine();
 
 bool HandleViewportDoubleClicked(Window *w, int x, int y);
 bool HandleViewportClicked(const ViewPort *vp, int x, int y, bool double_click);
+bool HandleViewportMouseUp(const ViewPort *vp, int x, int y);
 void SetRedErrorSquare(TileIndex tile);
 void SetTileSelectSize(int w, int h);
 void SetTileSelectBigSize(int ox, int oy, int sx, int sy);
@@ -97,5 +98,7 @@ void ShowTooltipForTile(Window *w, const TileIndex tile);
 
 void ViewportMapClearTunnelCache();
 void ViewportMapInvalidateTunnelCacheByTile(const TileIndex tile);
+
+void ToolbarSelectLastTool();
 
 #endif /* VIEWPORT_FUNC_H */

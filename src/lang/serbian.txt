@@ -656,7 +656,6 @@ STR_NEWS_MENU_MESSAGE_HISTORY_MENU                              :Istorija Obave�
 
 ############ range for about menu starts
 STR_ABOUT_MENU_LAND_BLOCK_INFO                                  :Podaci o zemljištu
-STR_ABOUT_MENU_SEPARATOR                                        :
 STR_ABOUT_MENU_TOGGLE_CONSOLE                                   :Uključi/isključi konzolu
 STR_ABOUT_MENU_AI_DEBUG                                         :Korekcija veštačke inteligencije / skripte partije
 STR_ABOUT_MENU_SCREENSHOT                                       :Sačuvaj sliku
@@ -5172,3 +5171,29 @@ STR_PLANE                                                       :{BLACK}{PLANE}
 STR_SHIP                                                        :{BLACK}{SHIP}
 
 STR_TOOLBAR_RAILTYPE_VELOCITY                                   :{STRING} ({VELOCITY})
+
+# Android strings
+STR_ABOUT_MENU_TUTORIAL                                         :Priručnik
+STR_SMALLMAP_TOOLTIP_SHOW_LEGEND                                :{BLACK}Prikaži legendu mape / opis simbola na mapi
+STR_CONFIG_SETTING_VERTICAL_TOOLBAR                             :Vertikalna alatna traka: {STRING}
+STR_CONFIG_SETTING_VERTICAL_TOOLBAR_HELPTEXT                    :Glavna alatna traka je podeljena na dve okomite alatne trake na rubovima ekrana
+STR_CONFIG_SETTING_BUTTON_SIZE                                  :Veličina dugmeta
+STR_CONFIG_SETTING_BUTTON_SIZE_TOOLTIP                          :Veličina svih elemenata korisničkog interfejsa
+STR_CONFIG_SETTING_FONT_SIZE                                    :Veličina slova
+STR_CONFIG_SETTING_FONT_SIZE_TOOLTIP                            :Veličina svih slova u igri
+STR_CONFIG_SETTING_BUILD_CONFIRMATION                           :Potvrdi akcije: {STRING}
+STR_CONFIG_SETTING_BUILD_CONFIRMATION_HELPTEXT                  :Prikaži dijalog potvrde pri gradnji drumova i stanica
+STR_TABLET_CLOSE_TOOLTIP                                        :{BLACK}Zatvori sve otvorene prozore (osim zakačenih)
+STR_TABLET_SHIFT_TOOLTIP                                        :{BLACK}Pritisnite za dobivanje procene troškova odabrane akcije
+STR_TABLET_CTRL_TOOLTIP                                         :{BLACK}Koristite za sve akcije za koje se koristi tipka "CTRL"
+STR_TUTORIAL_WINDOW_TITLE                                       :{BLACK}Video za učenje
+STR_TUTORIAL_WINDOW_TOOLTIP                                     :{BLACK}Otvori video plejer za gledanje videa za učenje
+STR_TUTORIAL_ROADS_AND_STATIONS                                 :{BLACK}Gradnja cesta i stanica, kupovina vozila
+STR_TUTORIAL_RAILWAYS                                           :{BLACK}Šine i vozovi
+STR_TUTORIAL_ROAD_VEHICLES                                      :{BLACK}Drumska vozila
+STR_TUTORIAL_SHIPS                                              :{BLACK}Brodovi i dokovi
+STR_TUTORIAL_CARGO                                              :{BLACK}Tip tereta
+STR_SAVELOAD_LOAD_NETWORK_BUTTON                                :{BLACK}Učitaj igru sa mreže
+STR_SAVELOAD_LOAD_NETWORK_TOOLTIP                               :{BLACK}Učitaj igru sa mrežne pohrane podataka
+STR_SAVELOAD_SAVE_NETWORK_BUTTON                                :{BLACK}Spremi igru na mrežu
+STR_SAVELOAD_SAVE_NETWORK_TOOLTIP                               :{BLACK}Spremi igru na mrežu

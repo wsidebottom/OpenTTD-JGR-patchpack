@@ -237,8 +237,8 @@ struct TimetableWindow : Window {
 
 			case WID_VT_ARRIVAL_DEPARTURE_SELECTION:
 			case WID_VT_TIMETABLE_PANEL:
-				resize->height = FONT_HEIGHT_NORMAL;
-				size->height = WD_FRAMERECT_TOP + 8 * resize->height + WD_FRAMERECT_BOTTOM;
+				resize->height = GetMinSizing(NWST_STEP, FONT_HEIGHT_NORMAL);
+				size->height = WD_FRAMERECT_TOP + 4 * resize->height + WD_FRAMERECT_BOTTOM;
 				break;
 
 			case WID_VT_SUMMARY_PANEL: {
@@ -251,7 +251,8 @@ struct TimetableWindow : Window {
 
 	int GetOrderFromTimetableWndPt(int y, const Vehicle *v)
 	{
-		int sel = (y - this->GetWidget<NWidgetBase>(WID_VT_TIMETABLE_PANEL)->pos_y - WD_FRAMERECT_TOP) / FONT_HEIGHT_NORMAL;
+		int line_height = this->GetWidget<NWidgetBase>(WID_VT_TIMETABLE_PANEL)->resize_y;
+		int sel = (y - this->GetWidget<NWidgetBase>(WID_VT_TIMETABLE_PANEL)->pos_y - WD_FRAMERECT_TOP) / line_height;
 
 		if ((uint)sel >= this->vscroll->GetCapacity()) return INVALID_ORDER;
 
@@ -413,7 +414,8 @@ struct TimetableWindow : Window {
 
 		switch (widget) {
 			case WID_VT_TIMETABLE_PANEL: {
-				int y = r.top + WD_FRAMERECT_TOP;
+				int line_height = this->GetWidget<NWidgetBase>(WID_VT_TIMETABLE_PANEL)->resize_y;
+				int y = Center(r.top + WD_FRAMERECT_TOP, line_height);
 				int i = this->vscroll->GetPosition();
 				VehicleOrderID order_id = (i + 1) / 2;
 				bool final_order = false;
@@ -471,7 +473,7 @@ struct TimetableWindow : Window {
 					}
 
 					i++;
-					y += FONT_HEIGHT_NORMAL;
+					y += line_height;
 				}
 				break;
 			}
@@ -489,7 +491,8 @@ struct TimetableWindow : Window {
 
 				VehicleOrderID earlyID = BuildArrivalDepartureList(v, arr_dep) ? cur_order : (VehicleOrderID)INVALID_VEH_ORDER_ID;
 
-				int y = r.top + WD_FRAMERECT_TOP;
+				int line_height = this->GetWidget<NWidgetBase>(WID_VT_TIMETABLE_PANEL)->resize_y;
+				int y = Center(r.top + WD_FRAMERECT_TOP, line_height);
 
 				bool show_late = this->show_expected && v->lateness_counter > DATE_UNIT_SIZE;
 				Ticks offset = show_late ? 0 : -v->lateness_counter;
@@ -524,7 +527,7 @@ struct TimetableWindow : Window {
 									show_late ? TC_RED : i == selected ? TC_WHITE : TC_BLACK);
 						}
 					}
-					y += FONT_HEIGHT_NORMAL;
+					y += line_height;
 				}
 				break;
 			}
@@ -896,7 +899,6 @@ static const NWidgetPart _nested_timetable_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, COLOUR_GREY),
 		NWidget(WWT_CAPTION, COLOUR_GREY, WID_VT_CAPTION), SetDataTip(STR_TIMETABLE_TITLE, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
-		NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_VT_ORDER_VIEW), SetMinimalSize(61, 14), SetDataTip( STR_TIMETABLE_ORDER_VIEW, STR_TIMETABLE_ORDER_VIEW_TOOLTIP),
 		NWidget(WWT_SHADEBOX, COLOUR_GREY),
 		NWidget(WWT_DEFSIZEBOX, COLOUR_GREY),
 		NWidget(WWT_STICKYBOX, COLOUR_GREY),
@@ -911,6 +913,7 @@ static const NWidgetPart _nested_timetable_widgets[] = {
 	NWidget(WWT_PANEL, COLOUR_GREY, WID_VT_SUMMARY_PANEL), SetMinimalSize(400, 22), SetResize(1, 0), EndContainer(),
 	NWidget(NWID_HORIZONTAL),
 		NWidget(NWID_HORIZONTAL, NC_EQUALSIZE),
+			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_VT_ORDER_VIEW), SetMinimalSize(61, 14), SetDataTip(STR_TIMETABLE_ORDER_VIEW, STR_TIMETABLE_ORDER_VIEW_TOOLTIP),
 			NWidget(NWID_VERTICAL, NC_EQUALSIZE),
 				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_VT_START_DATE), SetResize(1, 0), SetFill(1, 1), SetDataTip(STR_TIMETABLE_STARTING_DATE, STR_TIMETABLE_STARTING_DATE_TOOLTIP),
 				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_VT_CHANGE_TIME), SetResize(1, 0), SetFill(1, 1), SetDataTip(STR_TIMETABLE_CHANGE_TIME, STR_TIMETABLE_WAIT_TIME_TOOLTIP),

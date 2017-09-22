@@ -23,8 +23,15 @@
 #include "../core/random_func.hpp"
 #include "../core/math_func.hpp"
 #include "../fileio_func.h"
+#include "../settings_type.h"
+#include "../tilehighlight_func.h"
+#include "../viewport_func.h"
 #include "sdl_v.h"
 #include <SDL.h>
+#ifdef __ANDROID__
+#include <SDL_screenkeyboard.h>
+#include <SDL_android.h>
+#endif
 
 #include "../safeguards.h"
 
@@ -49,6 +56,9 @@ static SDL_Rect _dirty_rects[MAX_DIRTY_RECTS];
 static int _num_dirty_rects;
 static int _use_hwpalette;
 static int _requested_hwpalette; /* Did we request a HWPALETTE for the current video mode? */
+
+static SDL_Joystick * _multitouch_device = NULL;
+static Point _multitouch_second_point;
 
 void VideoDriver_SDL::MakeDirty(int left, int top, int width, int height)
 {
@@ -149,7 +159,11 @@ static void CheckPaletteAnim()
 static void DrawSurfaceToScreen()
 {
 	int n = _num_dirty_rects;
+#ifdef __ANDROID__
+	if (n == 0 && !_left_button_down) return; // We have to update the screen regularly to receive mouse_up event on Android
+#else
 	if (n == 0) return;
+#endif
 
 	_num_dirty_rects = 0;
 	if (n > MAX_DIRTY_RECTS) {
@@ -163,7 +177,9 @@ static void DrawSurfaceToScreen()
 				SDL_CALL SDL_BlitSurface(_sdl_screen, &_dirty_rects[i], _sdl_realscreen, &_dirty_rects[i]);
 			}
 		}
-		SDL_CALL SDL_UpdateRects(_sdl_realscreen, n, _dirty_rects);
+		static SDL_Rect dummy_rect = { 0, 0, 8, 8 };
+		if (n > 0) SDL_CALL SDL_UpdateRects(_sdl_realscreen, n, _dirty_rects);
+		else SDL_CALL SDL_UpdateRects(_sdl_realscreen, 1, &dummy_rect);
 	}
 }
 
@@ -410,6 +426,13 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h)
 
 	GameSizeChanged();
 
+#ifdef __ANDROID__
+	if (!_multitouch_device) {
+		_multitouch_device = SDL_JoystickOpen(0);
+	}
+	SDL_ANDROID_SetSystemMousePointerVisible(0); // We have our own cursor, only works on Android N
+#endif
+
 	return true;
 }
 
@@ -510,6 +533,8 @@ static uint ConvertSdlKeyIntoMy(SDL_keysym *sym, WChar *character)
 	if (sym->scancode == 49) key = WKC_BACKSPACE;
 #elif defined(__sgi__)
 	if (sym->scancode == 22) key = WKC_BACKQUOTE;
+#elif defined(__ANDROID__)
+	if (sym->scancode == SDLK_BACKQUOTE) key = WKC_BACKQUOTE;
 #else
 	if (sym->scancode == 49) key = WKC_BACKQUOTE;
 #endif
@@ -533,7 +558,9 @@ int VideoDriver_SDL::PollEvent()
 	switch (ev.type) {
 		case SDL_MOUSEMOTION:
 			if (_cursor.UpdateCursorPosition(ev.motion.x, ev.motion.y, true)) {
+#ifndef __ANDROID__ // No mouse warping on Android, mouse strictly follows finger
 				SDL_CALL SDL_WarpMouse(_cursor.pos.x, _cursor.pos.y);
+#endif
 			}
 			HandleMouseEvents();
 			break;
@@ -551,6 +578,13 @@ int VideoDriver_SDL::PollEvent()
 				case SDL_BUTTON_RIGHT:
 					_right_button_down = true;
 					_right_button_clicked = true;
+					_right_button_down_pos.x = ev.motion.x;
+					_right_button_down_pos.y = ev.motion.y;
+#ifdef __ANDROID__
+					// Right button click on Android - cancel whatever action we were doing
+					ResetObjectToPlace();
+					ToolbarSelectLastTool();
+#endif
 					break;
 
 				case SDL_BUTTON_WHEELUP:   _cursor.wheel--; break;
@@ -569,12 +603,20 @@ int VideoDriver_SDL::PollEvent()
 			} else if (ev.button.button == SDL_BUTTON_LEFT) {
 				_left_button_down = false;
 				_left_button_clicked = false;
+#ifdef __ANDROID__
+				if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_RMASK) {
+					// Two-finger click - hacky way to determine if the right mouse button is already pressed without processing the left button event
+					// Cancel whatever action we were doing, to allow two finger scrolling
+					ResetObjectToPlace();
+					ToolbarSelectLastTool();
+				}
+#endif
 			} else if (ev.button.button == SDL_BUTTON_RIGHT) {
 				_right_button_down = false;
 			}
 			HandleMouseEvents();
 			break;
-
+#ifndef __ANDROID__
 		case SDL_ACTIVEEVENT:
 			if (!(ev.active.state & SDL_APPMOUSEFOCUS)) break;
 
@@ -585,7 +627,7 @@ int VideoDriver_SDL::PollEvent()
 				_cursor.in_window = false;
 			}
 			break;
-
+#endif /* not __ANDROID__ */
 		case SDL_QUIT:
 			HandleExitGameRequest();
 			break;
@@ -598,15 +640,49 @@ int VideoDriver_SDL::PollEvent()
 				WChar character;
 				uint keycode = ConvertSdlKeyIntoMy(&ev.key.keysym, &character);
 				HandleKeypress(keycode, character);
+#ifdef __ANDROID__
+				if (ev.key.keysym.sym == SDLK_LCTRL || ev.key.keysym.sym == SDLK_RCTRL) {
+					_ctrl_pressed = true;
+				}
+				if (ev.key.keysym.sym == SDLK_LSHIFT || ev.key.keysym.sym == SDLK_RSHIFT) {
+					_shift_pressed = true;
+				}
+				if (ev.key.keysym.sym == SDLK_KP_PLUS || ev.key.keysym.sym == SDLK_KP_MINUS) {
+					// Center the mouse cursor between touch points
+					SDL_GetMouseState(&_right_button_down_pos.x, &_right_button_down_pos.y);
+					_right_button_down_pos.x = (_right_button_down_pos.x + _multitouch_second_point.x) / 2;
+					_right_button_down_pos.y = (_right_button_down_pos.y + _multitouch_second_point.y) / 2;
+					_cursor.pos = _right_button_down_pos;
+					//_cursor.UpdateCursorPosition(_cursor.pos.x, _cursor.pos.y, false);
+				}
+#endif
 			}
 			break;
-
+		case SDL_KEYUP:
+#ifdef __ANDROID__
+			if (ev.key.keysym.sym == SDLK_LCTRL || ev.key.keysym.sym == SDLK_RCTRL) {
+				_ctrl_pressed = false;
+			}
+			if (ev.key.keysym.sym == SDLK_LSHIFT || ev.key.keysym.sym == SDLK_RSHIFT) {
+				_shift_pressed = false;
+			}
+#endif
+			break;
+#ifdef __ANDROID__
+		case SDL_JOYBALLMOTION:
+			if (ev.jball.which == 0 && ev.jball.ball == 1) {
+				_multitouch_second_point.x = ev.jball.xrel;
+				_multitouch_second_point.y = ev.jball.yrel;
+			}
+#endif /* not __ANDROID__ */
+#ifndef __ANDROID__
 		case SDL_VIDEORESIZE: {
 			int w = max(ev.resize.w, 64);
 			int h = max(ev.resize.h, 64);
 			CreateMainSurface(w, h);
 			break;
 		}
+#endif /* not __ANDROID__ */
 		case SDL_VIDEOEXPOSE: {
 			/* Force a redraw of the entire screen. Note
 			 * that SDL 1.2 seems to do this automatically
@@ -638,6 +714,9 @@ const char *VideoDriver_SDL::Start(const char * const *parm)
 	SetupKeyboard();
 
 	_draw_threaded = GetDriverParam(parm, "no_threads") == NULL && GetDriverParam(parm, "no_thread") == NULL;
+#ifdef __ANDROID__
+	_draw_threaded = false;
+#endif
 
 	return NULL;
 }
@@ -728,8 +807,10 @@ void VideoDriver_SDL::MainLoop()
 
 			bool old_ctrl_pressed = _ctrl_pressed;
 
+#ifndef __ANDROID__
 			_ctrl_pressed  = !!(mod & KMOD_CTRL);
 			_shift_pressed = !!(mod & KMOD_SHIFT);
+#endif
 
 			/* determine which directional keys are down */
 			_dirkeys =
@@ -750,7 +831,9 @@ void VideoDriver_SDL::MainLoop()
 			 * except sleeping can't. */
 			if (_draw_mutex != NULL) _draw_mutex->EndCritical();
 
-			GameLoop();
+			for (int i = (_fast_forward ? 5 : 1); i > 0; i--) {
+				GameLoop();
+			}
 
 			if (_draw_mutex != NULL) _draw_mutex->BeginCritical();
 

@@ -146,10 +146,6 @@ elif [ -d "$ROOT_DIR/.hg" ]; then
 		# No rev? Maybe it is a custom hgsubversion clone
 		REV_NR=`LC_ALL=C HGPLAIN= hg parent --template="{svnrev}"`
 	fi
-elif [ -f "$ROOT_DIR/.ottdrev" ]; then
-	# We are an exported source bundle
-	cat $ROOT_DIR/.ottdrev
-	exit
 else
 	# We don't know
 	MODIFIED="1"
@@ -158,6 +154,7 @@ else
 	REV_NR=""
 fi
 
+MODIFIED="0" # This prevents Andorid build from connecting to a public servers
 if [ "$MODIFIED" -eq "2" ]; then
 	REV="${REV}M"
 fi
