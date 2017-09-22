@@ -663,7 +663,6 @@ STR_NEWS_MENU_MESSAGE_HISTORY_MENU                              :Žinučių isto
 
 ############ range for about menu starts
 STR_ABOUT_MENU_LAND_BLOCK_INFO                                  :Žemės ploto informacija
-STR_ABOUT_MENU_SEPARATOR                                        :
 STR_ABOUT_MENU_TOGGLE_CONSOLE                                   :Perjungti konsolę
 STR_ABOUT_MENU_AI_DEBUG                                         :AI / GameScript derinimas
 STR_ABOUT_MENU_SCREENSHOT                                       :Ekrano nuotrauka
@@ -5501,3 +5500,5 @@ STR_PLANE                                                       :{BLACK}{PLANE}
 STR_SHIP                                                        :{BLACK}{SHIP}
 
 STR_TOOLBAR_RAILTYPE_VELOCITY                                   :{STRING} ({VELOCITY})
+
+# Android strings

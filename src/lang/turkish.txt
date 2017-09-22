@@ -469,7 +469,6 @@ STR_NEWS_MENU_MESSAGE_HISTORY_MENU                              :Mesaj geçmişi
 
 ############ range for about menu starts
 STR_ABOUT_MENU_LAND_BLOCK_INFO                                  :Arazi bilgisi
-STR_ABOUT_MENU_SEPARATOR                                        :
 STR_ABOUT_MENU_TOGGLE_CONSOLE                                   :Konsolu aç/kapa
 STR_ABOUT_MENU_AI_DEBUG                                         :YZ/Oyun betik hata ayıklama
 STR_ABOUT_MENU_SCREENSHOT                                       :Ekran görüntüsü
@@ -4993,3 +4992,5 @@ STR_PLANE                                                       :{BLACK}{PLANE}
 STR_SHIP                                                        :{BLACK}{SHIP}
 
 STR_TOOLBAR_RAILTYPE_VELOCITY                                   :{STRING} ({VELOCITY})
+
+# Android strings

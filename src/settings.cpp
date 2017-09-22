@@ -54,6 +54,7 @@
 #include "base_media_base.h"
 #include "gamelog.h"
 #include "settings_func.h"
+#include "settings_gui.h"
 #include "ini_type.h"
 #include "ai/ai_config.hpp"
 #include "ai/ai.hpp"
@@ -65,6 +66,7 @@
 #include "fios.h"
 #include "strings_func.h"
 #include "string_func.h"
+#include "toolbar_gui.h"
 #include "debug.h"
 
 #include "void_map.h"
@@ -1098,6 +1100,16 @@ static bool ZoomMinMaxChanged(int32 p1)
 		UpdateCursorSize();
 		UpdateFontHeightCache();
 		LoadStringWidthTable();
+	}
+	return true;
+}
+
+static bool VerticalToolbarChanged(int32 p1)
+{
+	if (FindWindowByClass(WC_MAIN_TOOLBAR)) {
+		HideVitalWindows();
+		ShowVitalWindows();
+		ReInitAllWindows();
 	}
 	return true;
 }

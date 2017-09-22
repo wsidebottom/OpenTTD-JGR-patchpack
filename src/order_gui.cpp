@@ -1100,13 +1100,16 @@ private:
 		assert(type > OPOS_NONE && type < OPOS_END);
 
 		static const HighLightStyle goto_place_style[OPOS_END - 1] = {
-			HT_RECT | HT_VEHICLE, // OPOS_GOTO
+			HT_RECT | HT_VEHICLE | HT_SCROLL_VIEWPORT, // OPOS_GOTO
 			HT_NONE,              // OPOS_CONDITIONAL
-			HT_VEHICLE,           // OPOS_SHARE
+			HT_VEHICLE | HT_SCROLL_VIEWPORT,           // OPOS_SHARE
 		};
 		SetObjectToPlaceWnd(ANIMCURSOR_PICKSTATION, PAL_NONE, goto_place_style[type - 1], this);
 		this->goto_type = type;
 		this->SetWidgetDirty(WID_O_GOTO);
+		if (type == OPOS_GOTO) {
+			MoveAllWindowsOffScreen();
+		}
 	}
 
 	/**
@@ -1370,8 +1373,8 @@ public:
 
 			case WID_O_SEL_OCCUPANCY:
 			case WID_O_ORDER_LIST:
-				resize->height = FONT_HEIGHT_NORMAL;
-				size->height = 6 * resize->height + WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM;
+				resize->height = GetMinSizing(NWST_STEP, FONT_HEIGHT_NORMAL);
+				size->height = 4 * resize->height + WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM;
 				break;
 
 			case WID_O_COND_VARIABLE: {
@@ -1709,8 +1712,8 @@ public:
 		int index_column_width = GetStringBoundingBox(STR_ORDER_INDEX).width + 2 * GetSpriteSize(rtl ? SPR_ARROW_RIGHT : SPR_ARROW_LEFT).width + 3;
 		int middle = rtl ? r.right - WD_FRAMETEXT_RIGHT - index_column_width : r.left + WD_FRAMETEXT_LEFT + index_column_width;
 
-		int y = r.top + WD_FRAMERECT_TOP;
 		int line_height = this->GetWidget<NWidgetBase>(WID_O_ORDER_LIST)->resize_y;
+		int y = Center(r.top + WD_FRAMERECT_TOP, line_height);
 
 		int i = this->vscroll->GetPosition();
 		const Order *order = this->vehicle->GetOrder(i);
@@ -1735,7 +1738,7 @@ public:
 			}
 
 			/* Reset counters for drawing the orders. */
-			y = r.top + WD_FRAMERECT_TOP;
+			y = Center(r.top + WD_FRAMERECT_TOP, line_height);
 			i = this->vscroll->GetPosition();
 			order = this->vehicle->GetOrder(i);
 		}
@@ -2254,7 +2257,6 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, COLOUR_GREY),
 		NWidget(WWT_CAPTION, COLOUR_GREY, WID_O_CAPTION), SetDataTip(STR_ORDERS_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
-		NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_TIMETABLE_VIEW), SetMinimalSize(61, 14), SetDataTip(STR_ORDERS_TIMETABLE_VIEW, STR_ORDERS_TIMETABLE_VIEW_TOOLTIP),
 		NWidget(WWT_SHADEBOX, COLOUR_GREY),
 		NWidget(WWT_DEFSIZEBOX, COLOUR_GREY),
 		NWidget(WWT_STICKYBOX, COLOUR_GREY),
@@ -2318,6 +2320,7 @@ static const NWidgetPart _nested_orders_train_widgets[] = {
 	/* Second button row. */
 	NWidget(NWID_HORIZONTAL),
 		NWidget(NWID_HORIZONTAL, NC_EQUALSIZE),
+			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_TIMETABLE_VIEW), SetMinimalSize(61, 14), SetDataTip(STR_ORDERS_TIMETABLE_VIEW, STR_ORDERS_TIMETABLE_VIEW_TOOLTIP),
 			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_SKIP), SetMinimalSize(124, 12), SetFill(1, 0),
 													SetDataTip(STR_ORDERS_SKIP_BUTTON, STR_ORDERS_SKIP_TOOLTIP), SetResize(1, 0),
 			NWidget(NWID_SELECTION, INVALID_COLOUR, WID_O_SEL_BOTTOM_MIDDLE),
@@ -2346,7 +2349,6 @@ static const NWidgetPart _nested_orders_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, COLOUR_GREY),
 		NWidget(WWT_CAPTION, COLOUR_GREY, WID_O_CAPTION), SetDataTip(STR_ORDERS_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
-		NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_TIMETABLE_VIEW), SetMinimalSize(61, 14), SetDataTip(STR_ORDERS_TIMETABLE_VIEW, STR_ORDERS_TIMETABLE_VIEW_TOOLTIP),
 		NWidget(WWT_SHADEBOX, COLOUR_GREY),
 		NWidget(WWT_DEFSIZEBOX, COLOUR_GREY),
 		NWidget(WWT_STICKYBOX, COLOUR_GREY),
@@ -2404,6 +2406,7 @@ static const NWidgetPart _nested_orders_widgets[] = {
 
 	/* Second button row. */
 	NWidget(NWID_HORIZONTAL),
+		NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_TIMETABLE_VIEW), SetMinimalSize(61, 14), SetDataTip(STR_ORDERS_TIMETABLE_VIEW, STR_ORDERS_TIMETABLE_VIEW_TOOLTIP),
 		NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_SKIP), SetMinimalSize(124, 12), SetFill(1, 0),
 											SetDataTip(STR_ORDERS_SKIP_BUTTON, STR_ORDERS_SKIP_TOOLTIP), SetResize(1, 0),
 		NWidget(NWID_SELECTION, INVALID_COLOUR, WID_O_SEL_BOTTOM_MIDDLE),
@@ -2431,13 +2434,15 @@ static const NWidgetPart _nested_other_orders_widgets[] = {
 	NWidget(NWID_HORIZONTAL),
 		NWidget(WWT_CLOSEBOX, COLOUR_GREY),
 		NWidget(WWT_CAPTION, COLOUR_GREY, WID_O_CAPTION), SetDataTip(STR_ORDERS_CAPTION, STR_TOOLTIP_WINDOW_TITLE_DRAG_THIS),
-		NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_TIMETABLE_VIEW), SetMinimalSize(61, 14), SetDataTip(STR_ORDERS_TIMETABLE_VIEW, STR_ORDERS_TIMETABLE_VIEW_TOOLTIP),
 		NWidget(WWT_SHADEBOX, COLOUR_GREY),
 		NWidget(WWT_DEFSIZEBOX, COLOUR_GREY),
 		NWidget(WWT_STICKYBOX, COLOUR_GREY),
 	EndContainer(),
 	NWidget(NWID_HORIZONTAL),
-		NWidget(WWT_PANEL, COLOUR_GREY, WID_O_ORDER_LIST), SetMinimalSize(372, 72), SetDataTip(0x0, STR_ORDERS_LIST_TOOLTIP), SetResize(1, 1), SetScrollbar(WID_O_SCROLLBAR), EndContainer(),
+		NWidget(NWID_VERTICAL),
+			NWidget(WWT_PANEL, COLOUR_GREY, WID_O_ORDER_LIST), SetMinimalSize(372, 72), SetDataTip(0x0, STR_ORDERS_LIST_TOOLTIP), SetResize(1, 1), SetScrollbar(WID_O_SCROLLBAR), EndContainer(),
+			NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_O_TIMETABLE_VIEW), SetMinimalSize(61, 14), SetDataTip(STR_ORDERS_TIMETABLE_VIEW, STR_ORDERS_TIMETABLE_VIEW_TOOLTIP),
+		EndContainer(),
 		NWidget(NWID_VERTICAL),
 			NWidget(NWID_VSCROLLBAR, COLOUR_GREY, WID_O_SCROLLBAR),
 			NWidget(WWT_RESIZEBOX, COLOUR_GREY),
