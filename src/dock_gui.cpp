@@ -154,7 +154,6 @@ struct BuildDocksToolbarWindow : Window {
 
 			case WID_DT_STATION: // Build station button
 				if (!CanBuildVehicleInfrastructure(VEH_SHIP)) return;
-				VpStartPlaceSizing(tile, VPM_SINGLE_TILE, DDSP_BUILD_STATION);
 				if (HandlePlacePushButton(this, WID_DT_STATION, SPR_CURSOR_DOCK, HT_SPECIAL)) ShowBuildDockStationPicker(this);
 				break;
 
@@ -247,7 +246,7 @@ struct BuildDocksToolbarWindow : Window {
 					uint32 p2 = (uint32)INVALID_STATION << 16; // no station to join
 
 					/* Tile is always the land tile, so need to evaluate _thd.pos. */
-					CommandContainer cmdcont = { start_tile, _ctrl_pressed, p2, CMD_BUILD_DOCK | CMD_MSG(STR_ERROR_CAN_T_BUILD_DOCK_HERE), CcBuildDocks, "" };
+					CommandContainer cmdcont = { start_tile, _ctrl_pressed, p2, CMD_BUILD_DOCK | CMD_MSG(STR_ERROR_CAN_T_BUILD_DOCK_HERE), CcBuildDocks, 0, "" };
 
 					//SetObjectToPlace(SPR_CURSOR_DOCK, PAL_NONE, HT_SPECIAL, this->window_class, this->window_number);
 					ShowSelectStationIfNeeded(cmdcont, TileArea(start_tile, end_tile));
