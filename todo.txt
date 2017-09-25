@@ -10,3 +10,8 @@
 - Fix text input - it should use SDL_ANDROID_GetScreenKeyboardTextInputAsync(), TODO: it's broken in SDL.
 
 - Draggable combo boxes.
+
+- Cannot build buoy, waypoint, and depot.
+
+- Dragging viewport drags a random window in no-toolbars mode.
+
