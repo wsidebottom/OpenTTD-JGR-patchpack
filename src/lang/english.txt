@@ -3669,9 +3669,13 @@ STR_STATION_VIEW_CLOSE_AIRPORT_TOOLTIP                          :{BLACK}Prevent 
 # Departures window
 STR_DEPARTURES_CAPTION                                          :{WHITE}{STATION} Live Travel Information
 STR_DEPARTURES_CAPTION_WAYPOINT                                 :{WHITE}{WAYPOINT} Live Travel Information
+STR_DEPARTURES_PAX                                              :{BLACK}{TINY_FONT}P
+STR_DEPARTURES_FREIGHT                                          :{BLACK}{TINY_FONT}F
 STR_DEPARTURES_DEPARTURES                                       :{BLACK}{TINY_FONT}D
 STR_DEPARTURES_ARRIVALS                                         :{BLACK}{TINY_FONT}A
 STR_DEPARTURES_VIA_BUTTON                                       :{BLACK}{TINY_FONT}via
+STR_DEPARTURES_PAX_TOOLTIP                                      :{BLACK}Show passenger departures
+STR_DEPARTURES_FREIGHT_TOOLTIP                                  :{BLACK}Show freight departures
 STR_DEPARTURES_DEPARTURES_TOOLTIP                               :{BLACK}Show timetabled departures
 STR_DEPARTURES_ARRIVALS_TOOLTIP                                 :{BLACK}Show timetabled arrivals
 STR_DEPARTURES_VIA_TOOLTIP                                      :{BLACK}Show timetabled vehicles that do not stop here
@@ -4993,6 +4997,7 @@ STR_ERROR_TOO_MANY_BUS_STOPS                                    :{WHITE}Too many
 STR_ERROR_TOO_MANY_TRUCK_STOPS                                  :{WHITE}Too many lorry stations
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_STATION                          :{WHITE}Too close to another station/loading area
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_DOCK                             :{WHITE}Too close to another dock
+STR_ERROR_TOO_MANY_DOCKS                                        :{WHITE}Too many docks
 STR_ERROR_TOO_CLOSE_TO_ANOTHER_AIRPORT                          :{WHITE}Too close to another airport
 STR_ERROR_CAN_T_RENAME_STATION                                  :{WHITE}Can't rename station...
 STR_ERROR_DRIVE_THROUGH_ON_TOWN_ROAD                            :{WHITE}... this is a town owned road
