@@ -229,7 +229,7 @@ private:
 	{
 		this->column_size[VGC_NAME] = maxdim(GetStringBoundingBox(STR_GROUP_DEFAULT_TRAINS + this->vli.vtype), GetStringBoundingBox(STR_GROUP_ALL_TRAINS + this->vli.vtype));
 		/* We consider the max average length of characters to be the one of "a" */
-		this->column_size[VGC_NAME].width = max(GetCharacterWidth(FS_NORMAL, 97) * (MAX_LENGTH_GROUP_NAME_CHARS - 4), this->column_size[VGC_NAME].width);
+		this->column_size[VGC_NAME].width = max(GetCharacterWidth(FS_NORMAL, 97) * (MAX_LENGTH_GROUP_NAME_CHARS / 4 - 4), this->column_size[VGC_NAME].width);
 		this->tiny_step_height = max(11U, this->column_size[VGC_NAME].height);
 
 		this->column_size[VGC_COLLAPSED] = GetSpriteSize(SPR_WINDOW_UNSHADE);
@@ -259,7 +259,7 @@ private:
 
 		return WD_FRAMERECT_LEFT + 8 +
 			this->column_size[VGC_NAME].width + 8 +
-			this->column_size[VGC_COLLAPSED].width + 2 +
+			//this->column_size[VGC_COLLAPSED].width + 2 +
 			this->column_size[VGC_PROTECT].width + 2 +
 			this->column_size[VGC_AUTOREPLACE].width + 2 +
 			this->column_size[VGC_PROFIT].width + 2 +
@@ -412,16 +412,10 @@ public:
 				resize->height = this->tiny_step_height;
 
 				/* Minimum height is the height of the list widget minus all and default vehicles... */
-				size->height =  4 * GetVehicleListHeight(this->vli.vtype, this->tiny_step_height) - 2 * this->tiny_step_height;
-
-				/* ... minus the buttons at the bottom ... */
-				uint max_icon_height = GetSpriteSize(this->GetWidget<NWidgetCore>(WID_GL_CREATE_GROUP)->widget_data).height;
-				max_icon_height = max(max_icon_height, GetSpriteSize(this->GetWidget<NWidgetCore>(WID_GL_RENAME_GROUP)->widget_data).height);
-				max_icon_height = max(max_icon_height, GetSpriteSize(this->GetWidget<NWidgetCore>(WID_GL_DELETE_GROUP)->widget_data).height);
-				max_icon_height = max(max_icon_height, GetSpriteSize(this->GetWidget<NWidgetCore>(WID_GL_REPLACE_PROTECTION)->widget_data).height);
+				size->height = (this->vli.vtype >= VEH_SHIP ? 3 : 6) * GetVehicleListHeight(this->vli.vtype, this->tiny_step_height) - 2 * this->tiny_step_height;
 
 				/* ... minus the height of the group info ... */
-				max_icon_height += (FONT_HEIGHT_NORMAL * 3) + WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM;
+				uint max_icon_height = (FONT_HEIGHT_NORMAL * 3) + WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM;
 
 				/* Get a multiple of tiny_step_height of that amount */
 				size->height = Ceil(size->height - max_icon_height, tiny_step_height);
@@ -460,6 +454,12 @@ public:
 				size->height = (FONT_HEIGHT_NORMAL * 3) + WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM;
 				break;
 			}
+
+			case WID_GL_COLLAPSE_EXPAND_GROUP:
+			case WID_GL_COLLAPSE_ALL_GROUPS:
+			case WID_GL_EXPAND_ALL_GROUPS:
+				size->width = 0; // No space for these buttons on the touch interface
+				break;
 		}
 	}
 
