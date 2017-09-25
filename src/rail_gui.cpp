@@ -843,7 +843,7 @@ struct BuildRailToolbarWindow : Window {
 								int h = _settings_client.gui.station_platlength;
 								if (!_railstation.orientation) Swap(w, h);
 
-								CommandContainer cmdcont = { end_tile, p1, p2, CMD_BUILD_RAIL_STATION | CMD_MSG(STR_ERROR_CAN_T_BUILD_RAILROAD_STATION), CcStation, "" };
+								CommandContainer cmdcont = { end_tile, p1, p2, CMD_BUILD_RAIL_STATION | CMD_MSG(STR_ERROR_CAN_T_BUILD_RAILROAD_STATION), CcStation, 0, "" };
 								ShowSelectStationIfNeeded(cmdcont, TileArea(end_tile, w, h));
 							} else {
 								HandleStationPlacement(start_tile, end_tile);

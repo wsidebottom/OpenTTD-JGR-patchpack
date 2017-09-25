@@ -3341,9 +3341,13 @@ bool HandleViewportDoubleClicked(Window *w, int x, int y)
 	}
 }
 
+static bool _viewport_double_click = false;
+
 bool HandleViewportClicked(const ViewPort *vp, int x, int y, bool double_click)
 {
 	if (_move_pressed) return false;
+
+	_viewport_double_click = double_click;
 
 	// Allow scrolling viewport with mouse even in selection mode,
 	// unless we select line or area, or perform drag&drop
@@ -3375,7 +3379,7 @@ bool HandleViewportMouseUp(const ViewPort *vp, int x, int y)
 			 * If however the user double-clicks on a line that has a white and a blue section,
 			 * both lines (white and blue) will be constructed consecutively. */
 			static bool stop_snap_on_double_click = false;
-			if (double_click && stop_snap_on_double_click) {
+			if (_viewport_double_click && stop_snap_on_double_click) {
 				SetRailSnapMode(RSM_NO_SNAP);
 				return true;
 			}
