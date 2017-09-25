@@ -11,7 +11,3 @@
 
 - Draggable combo boxes.
 
-- Cannot build buoy, waypoint, and depot.
-
-- Dragging viewport drags a random window in no-toolbars mode.
-
