@@ -11,3 +11,6 @@
 
 - Draggable combo boxes.
 
+- Cloud save does not work.
+
+- Zoning dialog too small.
