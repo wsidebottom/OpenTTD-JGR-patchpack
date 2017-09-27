@@ -2102,10 +2102,6 @@ static void HandlePlacePresize()
  */
 static void HandleMouseDragNoTitlebars()
 {
-	printf("_dragging_window %d _left_button_down %d _focused_window %p _dragging_widget %d NODRAG %d\n",
-			_dragging_window, _left_button_down, _focused_window, _dragging_widget, 
-			_settings_client.gui.windows_titlebars || _dragging_window || !_left_button_down || _focused_window == NULL || _dragging_widget);
-
 	if (_settings_client.gui.windows_titlebars || _dragging_window ||
 		!_left_button_down || _focused_window == NULL || _dragging_widget) return;
 	unsigned distance = abs(_cursor.pos.x - _left_button_down_pos.x) + abs(_cursor.pos.y - _left_button_down_pos.y);
@@ -2370,8 +2366,6 @@ static EventState HandleWindowDragging()
 	/* Get out immediately if no window is being dragged at all. */
 	if (!_dragging_window) return ES_NOT_HANDLED;
 
-	printf("_dragging_window %d\n", _dragging_window);
-
 	/* If button still down, but cursor hasn't moved, there is nothing to do. */
 	if (_left_button_down && _cursor.delta.x == 0 && _cursor.delta.y == 0) return ES_HANDLED;
 
@@ -2480,7 +2474,6 @@ static EventState HandleWindowDragging()
 				GuiShowTooltips(w, STR_NULL, 0, NULL, TCC_LEFT_CLICK); // Hide tooltip
 			}
 
-			printf("_dragging_window %p\n", w);
 			return ES_HANDLED;
 		} else if (w->flags & WF_SIZING) {
 			/* Stop the sizing if the left mouse button was released */
@@ -2556,7 +2549,6 @@ static void StartWindowDrag(Window *w)
 	w->flags |= WF_DRAGGING;
 	w->flags &= ~WF_CENTERED;
 	_dragging_window = true;
-	printf("======> StartWindowDrag\n");
 
 	_drag_delta.x = w->left - _cursor.pos.x;
 	_drag_delta.y = w->top  - _cursor.pos.y;
@@ -2575,7 +2567,6 @@ static void StartWindowSizing(Window *w, bool to_left)
 	w->flags |= to_left ? WF_SIZING_LEFT : WF_SIZING_RIGHT;
 	w->flags &= ~WF_CENTERED;
 	_dragging_window = true;
-	printf("======> StartWindowSizing\n");
 
 	_drag_delta.x = _cursor.pos.x;
 	_drag_delta.y = _cursor.pos.y;
@@ -2657,7 +2648,6 @@ static EventState HandleViewportScroll()
 		}
 	}
 
-	printf("_scrolling_viewport %p _last_scroll_window %p\n", _scrolling_viewport, _last_scroll_window);
 	if (_scrolling_viewport == NULL) return ES_NOT_HANDLED;
 
 	/* When we don't have a last scroll window we are starting to scroll.
