@@ -143,6 +143,7 @@ struct ZoningWindow : public Window {
 		}
 		size->width += padding.width;
 		size->height = FONT_HEIGHT_NORMAL + WD_DROPDOWNTEXT_TOP + WD_DROPDOWNTEXT_BOTTOM;
+		size->height = GetMinSizing(NWST_STEP, FONT_HEIGHT_NORMAL);
 	}
 };
 
@@ -155,18 +156,17 @@ static const NWidgetPart _nested_zoning_widgets[] = {
 	EndContainer(),
 
 	NWidget(WWT_PANEL, COLOUR_GREY),
-		NWidget(NWID_HORIZONTAL, COLOUR_GREY), SetPIP(10, 3, 10),
-			NWidget(NWID_VERTICAL, COLOUR_GREY), SetPadding(5, 0, 5, 0),
+		NWidget(NWID_VERTICAL, COLOUR_GREY), SetPadding(5, 0, 5, 0),
+			NWidget(NWID_HORIZONTAL, COLOUR_GREY), SetPIP(10, 3, 10),
 				NWidget(WWT_TEXT, COLOUR_GREY), SetDataTip(STR_ZONING_OUTER, STR_NULL), SetResize(1, 0), SetPadding(1, 6, 1, 6),
-				NWidget(WWT_TEXT, COLOUR_GREY, ZTW_OUTER),
-				NWidget(WWT_TEXT, COLOUR_GREY), SetDataTip(STR_ZONING_INNER, STR_NULL), SetResize(1, 0), SetPadding(1, 6, 1, 6),
-				NWidget(WWT_TEXT, COLOUR_GREY, ZTW_INNER),
-			EndContainer(),
-			NWidget(NWID_VERTICAL, COLOUR_GREY), SetPadding(5, 0, 5, 0),
 				NWidget(WWT_DROPDOWN, COLOUR_GREY, ZTW_OUTER_DROPDOWN), SetDataTip(STR_JUST_STRING, STR_NULL), SetFill(1, 0),
-				NWidget(WWT_TEXT, COLOUR_GREY),
+			EndContainer(),
+			NWidget(WWT_TEXT, COLOUR_GREY),
+			NWidget(NWID_HORIZONTAL, COLOUR_GREY), SetPIP(10, 3, 10),
+				NWidget(WWT_TEXT, COLOUR_GREY), SetDataTip(STR_ZONING_INNER, STR_NULL), SetResize(1, 0), SetPadding(1, 6, 1, 6),
 				NWidget(WWT_DROPDOWN, COLOUR_GREY, ZTW_INNER_DROPDOWN), SetDataTip(STR_JUST_STRING, STR_NULL), SetFill(1, 0),
-				NWidget(WWT_TEXT, COLOUR_GREY),
+			EndContainer(),
+			NWidget(WWT_TEXT, COLOUR_GREY),
 			EndContainer(),
 		EndContainer(),
 	EndContainer()
