@@ -10,3 +10,5 @@
 - Draggable combo boxes.
 
 - Cloud save does not work.
+
+- Cannot build stations with Drag&Drop disabled.
