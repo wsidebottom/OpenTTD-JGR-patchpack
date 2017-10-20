@@ -3093,16 +3093,8 @@ static void MouseLoop(MouseClick click, int mousewheel)
 	assert(HasModalProgress() || IsLocalCompany());
 
 	static bool mouse_down_on_viewport = false;
-	int x = _cursor.pos.x;
-	int y = _cursor.pos.y;
-	Window *w = FindWindowFromPt(x, y);
-	if (w == NULL) return;
-	ViewPort *vp = IsPtInWindowViewport(w, x, y);
 
-	/* Don't allow any action in a viewport if either in menu or when having a modal progress window */
-	if (vp != NULL && (_game_mode == GM_MENU || HasModalProgress())) return;
-
-	if (click == MC_LEFT) _left_button_down_pos = Point { x, y };
+	if (click == MC_LEFT) _left_button_down_pos = _cursor.pos;
 
 	HandlePlacePresize();
 	UpdateTileSelection();
@@ -3119,6 +3111,9 @@ static void MouseLoop(MouseClick click, int mousewheel)
 	bool scrollwheel_scrolling = _settings_client.gui.scrollwheel_scrolling == 1 && (_cursor.v_wheel != 0 || _cursor.h_wheel != 0);
 	if (click == MC_NONE && mousewheel == 0 && !scrollwheel_scrolling) return;
 
+	int x = _cursor.pos.x;
+	int y = _cursor.pos.y;
+	Window *w = FindWindowFromPt(x, y);
 	if (w == NULL) return;
 
 	if (click != MC_NONE && click != MC_HOVER && click != MC_LEFT_UP && !MaybeBringWindowToFront(w)) return;
