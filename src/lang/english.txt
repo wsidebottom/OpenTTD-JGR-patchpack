@@ -1333,6 +1333,8 @@ STR_CONFIG_SETTING_SHOW_ADV_TRACE_RESTRICT_FEATURES             :Show advanced r
 STR_CONFIG_SETTING_SHOW_ADV_TRACE_RESTRICT_FEATURES_HELPTEXT    :Show advanced routing restriction features. When disabled, some advanced features are not shown in the UI, but are still available to all players.
 STR_CONFIG_SETTING_SHOW_PROGSIG_FEATURES                        :Show programmable signal feature: {STRING2}
 STR_CONFIG_SETTING_SHOW_PROGSIG_FEATURES_HELPTEXT               :Show programmable signal feature. When disabled, the buttons to build and configure programmable signals are not shown in the UI, but are still available to all players.
+STR_CONFIG_SETTING_SHOW_VEH_LIST_CARGO_FILTER                   :Show cargo type filter in vehicle lists: {STRING2}
+STR_CONFIG_SETTING_SHOW_VEH_LIST_CARGO_FILTER_HELPTEXT          :Show cargo type filter in vehicle lists. When enabled vehicle list windows include an additional filter dropdown.
 
 STR_CONFIG_SETTING_LANDSCAPE                                    :Landscape: {STRING2}
 STR_CONFIG_SETTING_LANDSCAPE_HELPTEXT                           :Landscapes define basic gameplay scenarios with different cargos and town growth requirements. NewGRF and Game Scripts allow finer control though
@@ -4026,6 +4028,8 @@ STR_PURCHASE_INFO_ALL_BUT                                       :All but {CARGO_
 STR_PURCHASE_INFO_MAX_TE                                        :{BLACK}Max. Tractive Effort: {GOLD}{FORCE}
 STR_PURCHASE_INFO_AIRCRAFT_RANGE                                :{BLACK}Range: {GOLD}{COMMA} tiles
 STR_PURCHASE_INFO_AIRCRAFT_TYPE                                 :{BLACK}Aircraft type: {GOLD}{STRING}
+
+STR_CARGO_TYPE_FREIGHT                                          :Freight
 
 STR_BUY_VEHICLE_TRAIN_LIST_TOOLTIP                              :{BLACK}Train vehicle selection list. Click on vehicle for information. Ctrl+Click for toggling hiding of the vehicle type
 STR_BUY_VEHICLE_ROAD_VEHICLE_LIST_TOOLTIP                       :{BLACK}Road vehicle selection list. Click on vehicle for information. Ctrl+Click for toggling hiding of the vehicle type
