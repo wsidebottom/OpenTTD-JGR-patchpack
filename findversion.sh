@@ -70,7 +70,7 @@ ROOT_DIR=`pwd`
 # Determine if we are using a modified version
 # Assume the dir is not modified
 MODIFIED="0"
-if [ -d "$ROOT_DIR/.git" ]; then
+if [ -d "$ROOT_DIR/.git" ] && false; then
 	# We are a git checkout
 	# Refresh the index to make sure file stat info is in sync, then look for modifications
 	git update-index --refresh >/dev/null
@@ -106,7 +106,7 @@ elif [ -f "$ROOT_DIR/.ottdrev-vc" ]; then
 		MODIFIED="1"
 	else
 		CURRENT_HASH="`$ROOT_DIR/version_utils.sh -s`"
-		if [ "$CURRENT_HASH" != "$HASH_DATA" ]; then
+		if [ "$CURRENT_HASH" != "$HASH_DATA" ] && false; then
 			MODIFIED="2"
 			if [ -n "$BRANCH" ]; then
 				BRANCH="$BRANCH-"
