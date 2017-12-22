@@ -1,4 +1,4 @@
-## JGR's Patchpack version 0.22.0
+## JGR's Patchpack version 0.22.1
 
 This is a collection of patches applied to [OpenTTD](http://www.openttd.org/)
 
@@ -225,7 +225,7 @@ See [jgrpp-changelog.md](jgrpp-changelog.md) for changelog.
   * Various minor fixes, see changelog.
 
 * Translations  
-  * German (by Auge)  
+  * German (by Auge and Kruemelchen)  
   * Korean (by kiwitreekor and TELK)
 
 
