@@ -9,4 +9,4 @@
 
 - Draggable combo boxes.
 
-- Cloud save does not work.
+- Any tap after building a road will result in another piece of the road placed.
