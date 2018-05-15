@@ -186,6 +186,9 @@
 /* Stuff for MSVC */
 #if defined(_MSC_VER)
 	#pragma once
+
+	#define MAX_PATH 260
+
 	#ifdef _WIN64
 		/* No 64-bit Windows below XP, so we can safely assume it as the target platform. */
 		#define NTDDI_VERSION NTDDI_WINXP // Windows XP
@@ -488,6 +491,9 @@ void NORETURN CDECL assert_msg_error(int line, const char *file, const char *exp
 
 #if defined(MAX_PATH)
 	/* It's already defined, no need to override */
+	#if defined(_MSC_VER)
+		#define PATH_MAX	MAX_PATH
+	#endif
 #elif defined(PATH_MAX) && PATH_MAX > 0
 	/* Use the value from PATH_MAX, if it exists */
 	#define MAX_PATH PATH_MAX

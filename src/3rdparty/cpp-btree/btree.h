@@ -114,6 +114,11 @@
 #include <string>
 #include <utility>
 
+#if defined(_MSC_VER)
+	#include <BaseTsd.h>
+	typedef SSIZE_T ssize_t;
+#endif
+
 namespace btree {
 
 // Inside a btree method, if we just call swap(), it will choose the
@@ -151,9 +156,12 @@ struct big_ {
 template <bool>
 struct CompileAssert {
 };
-
-#define COMPILE_ASSERT(expr, msg) \
-  typedef CompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1]
+  #if defined(_MSC_VER)
+    #define COMPILE_ASSERT(expr, msg)
+  #else
+    #define COMPILE_ASSERT(expr, msg) \
+      typedef CompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1]
+  #endif
 
 // A helper type used to indicate that a key-compare-to functor has been
 // provided. A user can specify a key-compare-to functor by doing:

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -320,10 +320,12 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\build_confirmation_gui.cpp" />
     <ClCompile Include="..\src\tbtr_template_gui_main.cpp" />
     <ClCompile Include="..\src\tbtr_template_gui_create.cpp" />
     <ClCompile Include="..\src\tbtr_template_vehicle.cpp" />
     <ClCompile Include="..\src\tbtr_template_vehicle_func.cpp" />
+    <ClInclude Include="..\src\build_confirmation_func.h" />
     <ClInclude Include="..\src\tbtr_template_gui_main.h" />
     <ClInclude Include="..\src\tbtr_template_gui_create.h" />
     <ClInclude Include="..\src\tbtr_template_vehicle.h" />
@@ -426,6 +428,7 @@
     <ClCompile Include="..\src\tile_map.cpp" />
     <ClCompile Include="..\src\tilearea.cpp" />
     <ClCompile Include="..\src\townname.cpp" />
+    <ClCompile Include="..\src\tutorial_gui.cpp" />
     <ClCompile Include="..\src\vehicle.cpp" />
     <ClCompile Include="..\src\vehiclelist.cpp" />
     <ClCompile Include="..\src\viewport.cpp" />
@@ -475,6 +478,7 @@
     <ClInclude Include="..\src\date_gui.h" />
     <ClInclude Include="..\src\date_type.h" />
     <ClInclude Include="..\src\debug.h" />
+    <ClInclude Include="..\src\tutorial_gui.h" />
     <ClInclude Include="..\src\video\dedicated_v.h" />
     <ClInclude Include="..\src\departures_func.h" />
     <ClInclude Include="..\src\departures_gui.h" />

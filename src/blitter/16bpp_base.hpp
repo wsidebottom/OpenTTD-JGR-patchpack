@@ -17,15 +17,21 @@
 #include "../core/math_func.hpp"
 #include "../gfx_func.h"
 
+#if defined(_MSC_VER)
+#define ATTR_PACKED
+#else
+#define ATTR_PACKED		__attribute__((packed))	
+#endif
+
 /** Base for all 16bpp blitters. */
 class Blitter_16bppBase : public Blitter {
 public:
 
 	// TODO: GCC-specific attributes
 	struct Colour16 {
-		unsigned b : 5 __attribute__((packed));  ///< Blue-channel, packed 5 bits
-		unsigned g : 6 __attribute__((packed));  ///< Green-channel, packed 6 bits
-		unsigned r : 5 __attribute__((packed));  ///< Red-channel, packed 5 bits
+		unsigned b : 5 ATTR_PACKED;  ///< Blue-channel, packed 5 bits
+		unsigned g : 6 ATTR_PACKED;  ///< Green-channel, packed 6 bits
+		unsigned r : 5 ATTR_PACKED;  ///< Red-channel, packed 5 bits
 		Colour16(uint8 r = 0, uint8 g = 0, uint8 b = 0):
 			b(b), g(g), r(r)
 		{
@@ -34,9 +40,9 @@ public:
 
 	struct Pixel {
 		Colour16 c;
-		unsigned a : 4 __attribute__((packed));  ///< Alpha-channel, packed 4 bits
-		unsigned v : 4 __attribute__((packed));  ///< Brightness-channel, packed 4 bits
-		unsigned m : 8 __attribute__((packed));  ///< Remap-channel, cannot pack it, because it's palette lookup index, so it must be in range 0-255
+		unsigned a : 4 ATTR_PACKED;  ///< Alpha-channel, packed 4 bits
+		unsigned v : 4 ATTR_PACKED;  ///< Brightness-channel, packed 4 bits
+		unsigned m : 8 ATTR_PACKED;  ///< Remap-channel, cannot pack it, because it's palette lookup index, so it must be in range 0-255
 	};
 
 	/* virtual */ uint8 GetScreenDepth() { return 16; }
