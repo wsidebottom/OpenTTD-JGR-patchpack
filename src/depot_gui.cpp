@@ -144,7 +144,7 @@ static void TrainDepotMoveVehicle(const Vehicle *wagon, VehicleID sel, const Veh
 
 	if (wagon == v) return;
 
-	DoCommandP(v->tile, v->index | (_ctrl_pressed ? 1 : 0) << 20, wagon == NULL ? INVALID_VEHICLE : wagon->index, CMD_MOVE_RAIL_VEHICLE | CMD_MSG(STR_ERROR_CAN_T_MOVE_VEHICLE));
+	DoCommandP(v->tile, v->index | ((_ctrl_pressed || _ctrl_toolbar_pressed) ? 1 : 0) << 20, wagon == NULL ? INVALID_VEHICLE : wagon->index, CMD_MOVE_RAIL_VEHICLE | CMD_MSG(STR_ERROR_CAN_T_MOVE_VEHICLE));
 }
 
 static VehicleCellSize _base_block_sizes_depot[VEH_COMPANY_END];    ///< Cell size for vehicle images in the depot view.
@@ -566,7 +566,7 @@ struct DepotWindow : Window {
 				} else if (v != NULL) {
 					SetObjectToPlaceWnd(SPR_CURSOR_MOUSE, PAL_NONE, HT_DRAG, this);
 					SetMouseCursorVehicle(v, EIT_IN_DEPOT);
-					_cursor.vehchain = _ctrl_pressed;
+					_cursor.vehchain = (_ctrl_pressed || _ctrl_toolbar_pressed);
 
 					this->sel = v->index;
 					this->SetDirty();
@@ -792,7 +792,7 @@ struct DepotWindow : Window {
 				break;
 
 			case WID_D_LOCATION:
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					ShowExtraViewPortWindow(this->window_number);
 				} else {
 					ScrollMainWindowToTile(this->window_number);
@@ -864,7 +864,7 @@ struct DepotWindow : Window {
 		CargoArray capacity, loaded;
 
 		/* Display info for single (articulated) vehicle, or for whole chain starting with selected vehicle */
-		bool whole_chain = (this->type == VEH_TRAIN && _ctrl_pressed);
+		bool whole_chain = (this->type == VEH_TRAIN && (_ctrl_pressed || _ctrl_toolbar_pressed));
 
 		/* loop through vehicle chain and collect cargoes */
 		uint num = 0;
@@ -911,7 +911,7 @@ struct DepotWindow : Window {
 	 */
 	virtual bool OnVehicleSelect(const Vehicle *v)
 	{
-		if (DoCommandP(this->window_number, v->index, _ctrl_pressed ? 1 : 0, CMD_CLONE_VEHICLE | CMD_MSG(STR_ERROR_CAN_T_BUY_TRAIN + v->type), CcCloneVehicle)) {
+		if (DoCommandP(this->window_number, v->index, (_ctrl_pressed || _ctrl_toolbar_pressed) ? 1 : 0, CMD_CLONE_VEHICLE | CMD_MSG(STR_ERROR_CAN_T_BUY_TRAIN + v->type), CcCloneVehicle)) {
 			ResetObjectToPlace();
 		}
 		return true;
@@ -1002,7 +1002,7 @@ struct DepotWindow : Window {
 					GetDepotVehiclePtData gdvp = { NULL, NULL };
 
 					if (this->GetVehicleFromDepotWndPt(pt.x - nwi->pos_x, pt.y - nwi->pos_y, &v, &gdvp) == MODE_DRAG_VEHICLE && sel != INVALID_VEHICLE) {
-						if (gdvp.wagon != NULL && gdvp.wagon->index == sel && _ctrl_pressed) {
+						if (gdvp.wagon != NULL && gdvp.wagon->index == sel && (_ctrl_pressed || _ctrl_toolbar_pressed)) {
 							DoCommandP(Vehicle::Get(sel)->tile, Vehicle::Get(sel)->index, true,
 									CMD_REVERSE_TRAIN_DIRECTION | CMD_MSG(STR_ERROR_CAN_T_REVERSE_DIRECTION_RAIL_VEHICLE));
 						} else if (gdvp.wagon == NULL || gdvp.wagon->index != sel) {
@@ -1028,7 +1028,7 @@ struct DepotWindow : Window {
 				this->sel = INVALID_VEHICLE;
 				this->SetDirty();
 
-				int sell_cmd = (v->type == VEH_TRAIN && (widget == WID_D_SELL_CHAIN || _ctrl_pressed)) ? 1 : 0;
+				int sell_cmd = (v->type == VEH_TRAIN && (widget == WID_D_SELL_CHAIN || (_ctrl_pressed || _ctrl_toolbar_pressed))) ? 1 : 0;
 				DoCommandP(v->tile, v->index | sell_cmd << 20 | MAKE_ORDER_BACKUP_FLAG, 0, GetCmdSellVeh(v->type));
 				break;
 			}
@@ -1058,17 +1058,14 @@ struct DepotWindow : Window {
 	{
 		this->vscroll->SetCapacityFromWidget(this, WID_D_MATRIX);
 		NWidgetCore *nwi = this->GetWidget<NWidgetCore>(WID_D_MATRIX);
-		if (this->type == VEH_TRAIN) {
-			this->hscroll->SetCapacity(nwi->current_x - this->header_width - this->count_width);
-		} else {
-			this->num_columns = nwi->current_x / nwi->resize_x;
-		}
+		if (this->type == VEH_TRAIN) this->hscroll->SetCapacity(nwi->current_x - this->header_width - this->count_width);
+		else this->num_columns = nwi->current_x / nwi->resize_x;
 	}
 
 	virtual EventState OnCTRLStateChange()
 	{
 		if (this->sel != INVALID_VEHICLE) {
-			_cursor.vehchain = _ctrl_pressed;
+			_cursor.vehchain = (_ctrl_pressed || _ctrl_toolbar_pressed);
 			this->SetWidgetDirty(WID_D_MATRIX);
 			return ES_HANDLED;
 		}

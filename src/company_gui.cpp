@@ -448,11 +448,11 @@ struct CompanyFinancesWindow : Window {
 				break;
 
 			case WID_CF_INCREASE_LOAN: // increase loan
-				DoCommandP(0, 0, _ctrl_pressed, CMD_INCREASE_LOAN | CMD_MSG(STR_ERROR_CAN_T_BORROW_ANY_MORE_MONEY));
+				DoCommandP(0, 0, (_ctrl_pressed || _ctrl_toolbar_pressed), CMD_INCREASE_LOAN | CMD_MSG(STR_ERROR_CAN_T_BORROW_ANY_MORE_MONEY));
 				break;
 
 			case WID_CF_REPAY_LOAN: // repay loan
-				DoCommandP(0, 0, _ctrl_pressed, CMD_DECREASE_LOAN | CMD_MSG(STR_ERROR_CAN_T_REPAY_LOAN));
+				DoCommandP(0, 0, (_ctrl_pressed || _ctrl_toolbar_pressed), CMD_DECREASE_LOAN | CMD_MSG(STR_ERROR_CAN_T_REPAY_LOAN));
 				break;
 
 			case WID_CF_INFRASTRUCTURE: // show infrastructure details
@@ -784,11 +784,8 @@ public:
 					DoCommandP(0, j | (2 << 8), !Company::Get((CompanyID)this->window_number)->livery[j].in_use, CMD_SET_COMPANY_COLOUR);
 				}
 
-				if (_ctrl_pressed) {
-					ToggleBit(this->sel, j);
-				} else {
-					this->sel = 1 << j;
-				}
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) ToggleBit(this->sel, j);
+				else this->sel = 1 << j;
 				this->SetDirty();
 				break;
 			}
@@ -799,7 +796,7 @@ public:
 	{
 		for (LiveryScheme scheme = LS_DEFAULT; scheme < LS_END; scheme++) {
 			/* Changed colour for the selected scheme, or all visible schemes if CTRL is pressed. */
-			if (HasBit(this->sel, scheme) || (_ctrl_pressed && _livery_class[scheme] == this->livery_class && HasBit(_loaded_newgrf_features.used_liveries, scheme))) {
+			if (HasBit(this->sel, scheme) || ((_ctrl_pressed || _ctrl_toolbar_pressed) && _livery_class[scheme] == this->livery_class && HasBit(_loaded_newgrf_features.used_liveries, scheme))) {
 				DoCommandP(0, scheme | (widget == WID_SCL_PRI_COL_DROPDOWN ? 0 : 256), index, CMD_SET_COMPANY_COLOUR);
 			}
 		}
@@ -2344,11 +2341,8 @@ struct CompanyWindow : Window
 
 			case WID_C_VIEW_HQ: {
 				TileIndex tile = Company::Get((CompanyID)this->window_number)->location_of_HQ;
-				if (_ctrl_pressed) {
-					ShowExtraViewPortWindow(tile);
-				} else {
-					ScrollMainWindowToTile(tile);
-				}
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) ShowExtraViewPortWindow(tile);
+				else ScrollMainWindowToTile(tile);
 				break;
 			}
 
@@ -2426,7 +2420,7 @@ struct CompanyWindow : Window
 
 	virtual void OnPlaceObject(Point pt, TileIndex tile)
 	{
-		if (DoCommandP(tile, OBJECT_HQ, 0, CMD_BUILD_OBJECT | CMD_MSG(STR_ERROR_CAN_T_BUILD_COMPANY_HEADQUARTERS)) && !_shift_pressed) {
+		if (DoCommandP(tile, OBJECT_HQ, 0, CMD_BUILD_OBJECT | CMD_MSG(STR_ERROR_CAN_T_BUILD_COMPANY_HEADQUARTERS)) && !(_shift_pressed || _shift_toolbar_pressed)) {
 			ResetObjectToPlace();
 			this->RaiseButtons();
 		}

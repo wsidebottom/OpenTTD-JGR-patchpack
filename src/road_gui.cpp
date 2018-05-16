@@ -474,7 +474,7 @@ struct BuildRoadToolbarWindow : Window {
 			default: NOT_REACHED();
 		}
 		this->UpdateOptionWidgetStatus((RoadToolbarWidgets)widget);
-		if (_ctrl_pressed) RoadToolbar_CtrlChanged(this);
+		if ((_ctrl_pressed || _ctrl_toolbar_pressed)) RoadToolbar_CtrlChanged(this);
 	}
 
 	virtual EventState OnHotkey(int hotkey)
@@ -547,7 +547,7 @@ struct BuildRoadToolbarWindow : Window {
 		this->SetWidgetDirty(WID_ROT_REMOVE);
 		this->SetWidgetDirty(WID_ROT_ONE_WAY);
 
-		if (ConfirmationWindowShown() && (this->last_started_action == WID_ROT_BUILD_BRIDGE || _ctrl_pressed)) return;
+		if (ConfirmationWindowShown() && (this->last_started_action == WID_ROT_BUILD_BRIDGE || (_ctrl_pressed || _ctrl_toolbar_pressed))) return;
 		DeleteWindowById(WC_BUS_STATION, TRANSPORT_ROAD);
 		DeleteWindowById(WC_TRUCK_STATION, TRANSPORT_ROAD);
 		DeleteWindowById(WC_BUILD_DEPOT, TRANSPORT_ROAD);
@@ -658,22 +658,22 @@ struct BuildRoadToolbarWindow : Window {
 					break;
 
 				case DDSP_BUILD_BUSSTOP:
-					PlaceRoadStop(start_tile, end_tile, (_ctrl_pressed << 5) | RoadTypeToRoadTypes(_cur_roadtype) << 2 | ROADSTOP_BUS, CMD_BUILD_ROAD_STOP | CMD_MSG(_road_type_infos[_cur_roadtype].err_build_station[ROADSTOP_BUS]));
+					PlaceRoadStop(start_tile, end_tile, ((_ctrl_pressed || _ctrl_toolbar_pressed) << 5) | RoadTypeToRoadTypes(_cur_roadtype) << 2 | ROADSTOP_BUS, CMD_BUILD_ROAD_STOP | CMD_MSG(_road_type_infos[_cur_roadtype].err_build_station[ROADSTOP_BUS]));
 					break;
 
 				case DDSP_BUILD_TRUCKSTOP:
-					PlaceRoadStop(start_tile, end_tile, (_ctrl_pressed << 5) | RoadTypeToRoadTypes(_cur_roadtype) << 2 | ROADSTOP_TRUCK, CMD_BUILD_ROAD_STOP | CMD_MSG(_road_type_infos[_cur_roadtype].err_build_station[ROADSTOP_TRUCK]));
+					PlaceRoadStop(start_tile, end_tile, ((_ctrl_pressed || _ctrl_toolbar_pressed) << 5) | RoadTypeToRoadTypes(_cur_roadtype) << 2 | ROADSTOP_TRUCK, CMD_BUILD_ROAD_STOP | CMD_MSG(_road_type_infos[_cur_roadtype].err_build_station[ROADSTOP_TRUCK]));
 					break;
 
 				case DDSP_REMOVE_BUSSTOP: {
 					TileArea ta(start_tile, end_tile);
-					DoCommandP(ta.tile, ta.w | ta.h << 8, (_ctrl_pressed << 1) | ROADSTOP_BUS, CMD_REMOVE_ROAD_STOP | CMD_MSG(_road_type_infos[_cur_roadtype].err_remove_station[ROADSTOP_BUS]), CcPlaySound_SPLAT_OTHER);
+					DoCommandP(ta.tile, ta.w | ta.h << 8, ((_ctrl_pressed || _ctrl_toolbar_pressed) << 1) | ROADSTOP_BUS, CMD_REMOVE_ROAD_STOP | CMD_MSG(_road_type_infos[_cur_roadtype].err_remove_station[ROADSTOP_BUS]), CcPlaySound_SPLAT_OTHER);
 					break;
 				}
 
 				case DDSP_REMOVE_TRUCKSTOP: {
 					TileArea ta(start_tile, end_tile);
-					DoCommandP(ta.tile, ta.w | ta.h << 8, (_ctrl_pressed << 1) | ROADSTOP_TRUCK, CMD_REMOVE_ROAD_STOP | CMD_MSG(_road_type_infos[_cur_roadtype].err_remove_station[ROADSTOP_TRUCK]), CcPlaySound_SPLAT_OTHER);
+					DoCommandP(ta.tile, ta.w | ta.h << 8, ((_ctrl_pressed || _ctrl_toolbar_pressed) << 1) | ROADSTOP_TRUCK, CMD_REMOVE_ROAD_STOP | CMD_MSG(_road_type_infos[_cur_roadtype].err_remove_station[ROADSTOP_TRUCK]), CcPlaySound_SPLAT_OTHER);
 					break;
 				}
 

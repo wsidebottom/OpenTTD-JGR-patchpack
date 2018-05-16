@@ -753,7 +753,7 @@ bool DoCommandP(TileIndex tile, uint32 p1, uint32 p2, uint32 cmd, CommandCallbac
 	 * However, in case of incoming network commands,
 	 * map generation or the pause button we do want
 	 * to execute. */
-	bool estimate_only = (_shift_pressed || ConfirmationWindowEstimatingCost()) &&
+	bool estimate_only = ((_shift_pressed || _shift_toolbar_pressed) || ConfirmationWindowEstimatingCost()) &&
 			IsLocalCompany() &&
 			!_generating_world &&
 			!(cmd & CMD_NETWORK_COMMAND) &&

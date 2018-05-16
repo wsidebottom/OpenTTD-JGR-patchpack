@@ -1242,11 +1242,8 @@ static CallBackFunction MenuClickHelp(int index)
 
 static CallBackFunction ToolbarSwitchClick(Window *w)
 {
-	if (_toolbar_mode != TB_LOWER) {
-		_toolbar_mode = TB_LOWER;
-	} else {
-		_toolbar_mode = TB_UPPER;
-	}
+	if (_toolbar_mode != TB_LOWER) _toolbar_mode = TB_LOWER;
+	else _toolbar_mode = TB_UPPER;
 
 	w->ReInit();
 	w->SetWidgetLoweredState(WID_TN_SWITCH_BAR, _toolbar_mode == TB_LOWER);
@@ -1256,9 +1253,9 @@ static CallBackFunction ToolbarSwitchClick(Window *w)
 
 static CallBackFunction ToolbarCtrlClick(Window *w)
 {
-	_ctrl_pressed = !_ctrl_pressed;
-	//DEBUG(misc, 1, "ToolbarCtrlClick: pressed %d", _ctrl_pressed);
-	w->SetWidgetLoweredState(WID_TN_CTRL, _ctrl_pressed);
+	_ctrl_toolbar_pressed = !_ctrl_toolbar_pressed;
+	DEBUG(misc, 1, "ToolbarCtrlClick: pressed %d", _ctrl_toolbar_pressed);
+	w->SetWidgetLoweredState(WID_TN_CTRL, _ctrl_toolbar_pressed);
 	w->SetWidgetDirty(WID_TN_CTRL);
 	HandleCtrlChanged();
 	if (_settings_client.sound.click_beep) SndPlayFx(SND_15_BEEP);
@@ -1267,9 +1264,9 @@ static CallBackFunction ToolbarCtrlClick(Window *w)
 
 static CallBackFunction ToolbarShiftClick(Window *w)
 {
-	_shift_pressed = !_shift_pressed;
-	//DEBUG(misc, 1, "ToolbarShiftClick: pressed %d", _shift_pressed);
-	w->SetWidgetLoweredState(WID_TN_SHIFT, _shift_pressed);
+	_shift_toolbar_pressed = !_shift_toolbar_pressed;
+	DEBUG(misc, 1, "ToolbarShiftClick: pressed %d", _shift_toolbar_pressed);
+	w->SetWidgetLoweredState(WID_TN_SHIFT, _shift_toolbar_pressed);
 	w->SetWidgetDirty(WID_TN_SHIFT);
 	if (_settings_client.sound.click_beep) SndPlayFx(SND_15_BEEP);
 	return CBF_NONE;
@@ -1278,11 +1275,11 @@ static CallBackFunction ToolbarShiftClick(Window *w)
 static CallBackFunction ToolbarDeleteClick(Window *w)
 {
 	DeleteNonVitalWindows();
-	_ctrl_pressed = false;
-	w->SetWidgetLoweredState(WID_TN_CTRL, _ctrl_pressed);
+	_ctrl_toolbar_pressed = false;
+	w->SetWidgetLoweredState(WID_TN_CTRL, _ctrl_toolbar_pressed);
 	w->SetWidgetDirty(WID_TN_CTRL);
-	_shift_pressed = false;
-	w->SetWidgetLoweredState(WID_TN_SHIFT, _shift_pressed);
+	_shift_toolbar_pressed = false;
+	w->SetWidgetLoweredState(WID_TN_SHIFT, _shift_toolbar_pressed);
 	w->SetWidgetDirty(WID_TN_SHIFT);
 	if (_settings_client.sound.click_beep) SndPlayFx(SND_15_BEEP);
 	return CBF_NONE;

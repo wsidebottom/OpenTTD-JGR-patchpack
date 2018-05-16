@@ -265,13 +265,13 @@ static void GenericPlaceSignals(TileIndex tile)
 
 	if (w != NULL) {
 		/* signal GUI is used */
-		SB(p1, 3, 1, _ctrl_pressed);
+		SB(p1, 3, 1, (_ctrl_pressed || _ctrl_toolbar_pressed));
 		SB(p1, 4, 1, _cur_signal_variant);
 		SB(p1, 5, 3, _cur_signal_type);
 		SB(p1, 8, 1, _convert_signal_button);
 		SB(p1, 9, 6, _settings_client.gui.cycle_signal_types);
 	} else {
-		SB(p1, 3, 1, _ctrl_pressed);
+		SB(p1, 3, 1, (_ctrl_pressed || _ctrl_toolbar_pressed));
 		SB(p1, 4, 1, (_cur_year < _settings_client.gui.semaphore_build_before ? SIG_SEMAPHORE : SIG_ELECTRIC));
 		SB(p1, 5, 3, _default_signal_type[_settings_client.gui.default_signal_type]);
 		SB(p1, 8, 1, 0);
@@ -396,14 +396,14 @@ static void HandleAutodirPlacement()
 	/* When overbuilding existing tracks in polyline mode we just want to move the
 	 * snap point without altering the user with the "already built" error. Don't
 	 * execute the command right away, firstly check if tracks are being overbuilt. */
-	if (!(_thd.place_mode & HT_POLY) || _shift_pressed ||
+	if (!(_thd.place_mode & HT_POLY) || (_shift_pressed || _shift_toolbar_pressed) ||
 			DoCommand(&cmd, DC_AUTO | DC_NO_WATER).GetErrorMessage() != STR_ERROR_ALREADY_BUILT) {
 		/* place tracks */
 		if (!DoCommandP(&cmd)) return;
 	}
 
 	/* save new snap points for the polyline tool */
-	if (!_shift_pressed && _rail_track_endtile != INVALID_TILE) {
+	if (!(_shift_pressed || _shift_toolbar_pressed) && _rail_track_endtile != INVALID_TILE) {
 		StoreRailPlacementEndpoints(start_tile, _rail_track_endtile, track, true);
 	}
 }
@@ -429,14 +429,14 @@ static void HandleAutoSignalPlacement()
 		/* signal GUI is used */
 		SB(p2,  3, 1, 0);
 		SB(p2,  4, 1, _cur_signal_variant);
-		SB(p2,  6, 1, _ctrl_pressed);
+		SB(p2,  6, 1, (_ctrl_pressed || _ctrl_toolbar_pressed));
 		SB(p2,  7, 3, _cur_signal_type);
 		SB(p2, 24, 8, _settings_client.gui.drag_signals_density);
 		SB(p2, 10, 1, !_settings_client.gui.drag_signals_fixed_distance);
 	} else {
 		SB(p2,  3, 1, 0);
 		SB(p2,  4, 1, (_cur_year < _settings_client.gui.semaphore_build_before ? SIG_SEMAPHORE : SIG_ELECTRIC));
-		SB(p2,  6, 1, _ctrl_pressed);
+		SB(p2,  6, 1, (_ctrl_pressed || _ctrl_toolbar_pressed));
 		SB(p2,  7, 3, _default_signal_type[_settings_client.gui.default_signal_type]);
 		SB(p2, 24, 8, _settings_client.gui.drag_signals_density);
 		SB(p2, 10, 1, !_settings_client.gui.drag_signals_fixed_distance);
@@ -618,7 +618,7 @@ struct BuildRailToolbarWindow : Window {
 				} else if (this->last_user_action == HOTKEY_NEW_POLYRAIL) {
 					do_snap = false;
 					do_open = !was_open || was_snap;
-				} else if (_ctrl_pressed) {
+				} else if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					do_snap = !was_open || !was_snap;
 					do_open = true;
 				} else {
@@ -667,7 +667,7 @@ struct BuildRailToolbarWindow : Window {
 			case WID_RAT_BUILD_SIGNALS: {
 				this->last_user_action = widget;
 				bool started = HandlePlacePushButton(this, WID_RAT_BUILD_SIGNALS, ANIMCURSOR_BUILDSIGNALS, HT_RECT);
-				if (started && _settings_client.gui.enable_signal_gui != _ctrl_pressed) {
+				if (started && _settings_client.gui.enable_signal_gui != (_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					ShowSignalBuilder(this);
 				}
 				break;
@@ -695,7 +695,7 @@ struct BuildRailToolbarWindow : Window {
 			default: NOT_REACHED();
 		}
 		this->UpdateRemoveWidgetStatus(widget);
-		if (_ctrl_pressed) RailToolbar_CtrlChanged(this);
+		if ((_ctrl_pressed || _ctrl_toolbar_pressed)) RailToolbar_CtrlChanged(this);
 	}
 
 	virtual EventState OnHotkey(int hotkey)
@@ -825,7 +825,7 @@ struct BuildRailToolbarWindow : Window {
 					break;
 
 				case DDSP_CONVERT_RAIL:
-					DoCommandP(end_tile, start_tile, _cur_railtype | (_ctrl_pressed ? (1 << 5) : 0), CMD_CONVERT_RAIL | CMD_MSG(STR_ERROR_CAN_T_CONVERT_RAIL), CcPlaySound_SPLAT_RAIL);
+					DoCommandP(end_tile, start_tile, _cur_railtype | ((_ctrl_pressed || _ctrl_toolbar_pressed) ? (1 << 5) : 0), CMD_CONVERT_RAIL | CMD_MSG(STR_ERROR_CAN_T_CONVERT_RAIL), CcPlaySound_SPLAT_RAIL);
 					break;
 
 				case DDSP_REMOVE_STATION:
@@ -833,10 +833,10 @@ struct BuildRailToolbarWindow : Window {
 					if (this->IsWidgetLowered(WID_RAT_BUILD_STATION)) {
 						/* Station */
 						if (_remove_button_clicked) {
-							DoCommandP(end_tile, start_tile, _ctrl_pressed ? 0 : 1, CMD_REMOVE_FROM_RAIL_STATION | CMD_MSG(STR_ERROR_CAN_T_REMOVE_PART_OF_STATION), CcPlaySound_SPLAT_RAIL);
+							DoCommandP(end_tile, start_tile, (_ctrl_pressed || _ctrl_toolbar_pressed) ? 0 : 1, CMD_REMOVE_FROM_RAIL_STATION | CMD_MSG(STR_ERROR_CAN_T_REMOVE_PART_OF_STATION), CcPlaySound_SPLAT_RAIL);
 						} else {
 							if (!_settings_client.gui.station_dragdrop) {
-								uint32 p1 = _cur_railtype | _railstation.orientation << 5 | _settings_client.gui.station_numtracks << 8 | _settings_client.gui.station_platlength << 16 | _ctrl_pressed << 24;
+								uint32 p1 = _cur_railtype | _railstation.orientation << 5 | _settings_client.gui.station_numtracks << 8 | _settings_client.gui.station_platlength << 16 | (_ctrl_pressed || _ctrl_toolbar_pressed) << 24;
 								uint32 p2 = _railstation.station_class | _railstation.station_type << 8 | INVALID_STATION << 16;
 
 								int w = _settings_client.gui.station_numtracks;
@@ -852,10 +852,10 @@ struct BuildRailToolbarWindow : Window {
 					} else {
 						/* Waypoint */
 						if (_remove_button_clicked) {
-							DoCommandP(end_tile, start_tile, _ctrl_pressed ? 0 : 1, CMD_REMOVE_FROM_RAIL_WAYPOINT | CMD_MSG(STR_ERROR_CAN_T_REMOVE_TRAIN_WAYPOINT), CcPlaySound_SPLAT_RAIL);
+							DoCommandP(end_tile, start_tile, (_ctrl_pressed || _ctrl_toolbar_pressed) ? 0 : 1, CMD_REMOVE_FROM_RAIL_WAYPOINT | CMD_MSG(STR_ERROR_CAN_T_REMOVE_TRAIN_WAYPOINT), CcPlaySound_SPLAT_RAIL);
 						} else {
 							TileArea ta(start_tile, end_tile);
-							uint32 p1 = _cur_railtype | (select_method == VPM_X_LIMITED ? AXIS_X : AXIS_Y) << 4 | ta.w << 8 | ta.h << 16 | _ctrl_pressed << 24;
+							uint32 p1 = _cur_railtype | (select_method == VPM_X_LIMITED ? AXIS_X : AXIS_Y) << 4 | ta.w << 8 | ta.h << 16 | (_ctrl_pressed || _ctrl_toolbar_pressed) << 24;
 							uint32 p2 = STAT_CLASS_WAYP | _cur_waypoint_type << 8 | INVALID_STATION << 16;
 
 							CommandContainer cmdcont = { ta.tile, p1, p2, CMD_BUILD_RAIL_WAYPOINT | CMD_MSG(STR_ERROR_CAN_T_BUILD_TRAIN_WAYPOINT), CcPlaySound_SPLAT_RAIL, 0, "" };
@@ -883,7 +883,7 @@ struct BuildRailToolbarWindow : Window {
 		this->DisableWidget(WID_RAT_REMOVE);
 		this->SetWidgetDirty(WID_RAT_REMOVE);
 
-		if (ConfirmationWindowShown() && (this->last_user_action == WID_RAT_BUILD_BRIDGE || _ctrl_pressed)) return;
+		if (ConfirmationWindowShown() && (this->last_user_action == WID_RAT_BUILD_BRIDGE || (_ctrl_pressed || _ctrl_toolbar_pressed))) return;
 		DeleteWindowById(WC_BUILD_SIGNAL, TRANSPORT_RAIL);
 		DeleteWindowById(WC_BUILD_STATION, TRANSPORT_RAIL);
 		DeleteWindowById(WC_BUILD_DEPOT, TRANSPORT_RAIL);
@@ -1049,7 +1049,7 @@ static void HandleStationPlacement(TileIndex start, TileIndex end)
 
 	if (_railstation.orientation == AXIS_X) Swap(numtracks, platlength);
 
-	uint32 p1 = _cur_railtype | _railstation.orientation << 5 | numtracks << 8 | platlength << 16 | _ctrl_pressed << 24;
+	uint32 p1 = _cur_railtype | _railstation.orientation << 5 | numtracks << 8 | platlength << 16 | (_ctrl_pressed || _ctrl_toolbar_pressed) << 24;
 	uint32 p2 = _railstation.station_class | _railstation.station_type << 8 | INVALID_STATION << 16;
 
 	CommandContainer cmdcont = { ta.tile, p1, p2, CMD_BUILD_RAIL_STATION | CMD_MSG(STR_ERROR_CAN_T_BUILD_RAILROAD_STATION), CcStation, 0, "" };

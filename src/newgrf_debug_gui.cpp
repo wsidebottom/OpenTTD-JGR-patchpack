@@ -977,10 +977,10 @@ struct SpriteAlignerWindow : Window {
 				}
 				switch (widget) {
 					/* Move ten units at a time if ctrl is pressed. */
-					case WID_SA_UP:    spr->y_offs -= _ctrl_pressed ? 8 : 1; break;
-					case WID_SA_DOWN:  spr->y_offs += _ctrl_pressed ? 8 : 1; break;
-					case WID_SA_LEFT:  spr->x_offs -= _ctrl_pressed ? 8 : 1; break;
-					case WID_SA_RIGHT: spr->x_offs += _ctrl_pressed ? 8 : 1; break;
+					case WID_SA_UP:    spr->y_offs -= (_ctrl_pressed || _ctrl_toolbar_pressed) ? 8 : 1; break;
+					case WID_SA_DOWN:  spr->y_offs += (_ctrl_pressed || _ctrl_toolbar_pressed) ? 8 : 1; break;
+					case WID_SA_LEFT:  spr->x_offs -= (_ctrl_pressed || _ctrl_toolbar_pressed) ? 8 : 1; break;
+					case WID_SA_RIGHT: spr->x_offs += (_ctrl_pressed || _ctrl_toolbar_pressed) ? 8 : 1; break;
 				}
 				/* Of course, we need to redraw the sprite, but where is it used?
 				 * Everywhere is a safe bet. */

@@ -1134,7 +1134,7 @@ public:
 			case TR_WIDGET_INSTRUCTION_LIST: {
 				int sel = this->GetItemIndexFromPt(pt.y);
 
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					// scroll to target (for stations, waypoints, depots)
 
 					if (sel == -1) return;
@@ -1223,7 +1223,7 @@ public:
 					return;
 				}
 
-				TraceRestrictDoCommandP(tile, track, _ctrl_pressed ? TRDCT_SHALLOW_REMOVE_ITEM : TRDCT_REMOVE_ITEM,
+				TraceRestrictDoCommandP(tile, track, (_ctrl_pressed || _ctrl_toolbar_pressed) ? TRDCT_SHALLOW_REMOVE_ITEM : TRDCT_REMOVE_ITEM,
 						this->selected_instruction - 1, 0, STR_TRACE_RESTRICT_ERROR_CAN_T_REMOVE_ITEM);
 				break;
 			}
@@ -1237,7 +1237,7 @@ public:
 
 				uint32 p2 = 0;
 				if (widget == TR_WIDGET_UP_BTN) p2 |= 1;
-				if (_ctrl_pressed) p2 |= 2;
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) p2 |= 2;
 
 				uint32 offset = this->selected_instruction - 1;
 
@@ -2012,7 +2012,7 @@ private:
 
 		std::vector<TraceRestrictItem> items = prog->items; // copy
 		uint32 offset = this->selected_instruction - 1;
-		if (TraceRestrictProgramMoveItemAt(items, offset, up, _ctrl_pressed).Succeeded()) {
+		if (TraceRestrictProgramMoveItemAt(items, offset, up, (_ctrl_pressed || _ctrl_toolbar_pressed)).Succeeded()) {
 			TraceRestrictProgramActionsUsedFlags actions_used_flags;
 			if (TraceRestrictProgram::Validate(items, actions_used_flags).Succeeded()) {
 				if (update_selection) this->selected_instruction = offset + 1;
@@ -2085,7 +2085,7 @@ private:
 		middle_sel->SetDisplayedPlane(DPM_BLANK);
 		right_sel->SetDisplayedPlane(DPR_BLANK);
 		share_sel->SetDisplayedPlane(DPS_SHARE);
-		copy_sel->SetDisplayedPlane(_ctrl_pressed ? DPC_APPEND : DPC_COPY);
+		copy_sel->SetDisplayedPlane((_ctrl_pressed || _ctrl_toolbar_pressed) ? DPC_APPEND : DPC_COPY);
 
 		const TraceRestrictProgram *prog = this->GetProgram();
 
@@ -3070,7 +3070,7 @@ public:
 				uint id_s = this->slot_sb->GetScrolledRowFromWidget(pt.y, this, WID_TRSL_LIST_SLOTS, 0, this->tiny_step_height);
 				if (id_s >= this->slots.Length()) return; // click out of list bound
 
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					// remove from old group
 					DoCommandP(0, this->slot_sel, vindex, CMD_REMOVE_VEHICLE_TRACERESTRICT_SLOT | CMD_MSG(STR_TRACE_RESTRICT_ERROR_SLOT_CAN_T_REMOVE_VEHICLE));
 				}

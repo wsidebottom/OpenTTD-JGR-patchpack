@@ -148,7 +148,7 @@ struct BuildConfirmationWindow : Window {
 		BuildConfirmationWindow::shown = true;
 		BuildConfirmationWindow::estimating_cost = true;
 		ConfirmationWindowSetEstimatedCost(0); // Clear old value, just in case
-		// This is a hack - we invoke the build command with estimating_cost flag, which is equal to _shift_pressed,
+		// This is a hack - we invoke the build command with estimating_cost flag, which is equal to (_shift_pressed || _shift_toolbar_pressed),
 		// then we select last build tool, restore viewport selection, and hide all windows, which pop up when command is invoked,
 		// and all that just to get cost estimate value.
 		ConfirmPlacingObject();
@@ -241,7 +241,7 @@ void ShowBuildConfirmationWindow()
 
 	HideBuildConfirmationWindow();
 
-	if (!_settings_client.gui.build_confirmation || _shift_pressed) {
+	if (!_settings_client.gui.build_confirmation || (_shift_pressed || _shift_toolbar_pressed)) {
 		ConfirmPlacingObject();
 		return;
 	}

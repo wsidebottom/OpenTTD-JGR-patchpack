@@ -144,11 +144,8 @@ struct GoalListWindow : public Window {
 			default: NOT_REACHED();
 		}
 
-		if (_ctrl_pressed) {
-			ShowExtraViewPortWindow(xy);
-		} else {
-			ScrollMainWindowToTile(xy);
-		}
+		if ((_ctrl_pressed || _ctrl_toolbar_pressed)) ShowExtraViewPortWindow(xy);
+		else ScrollMainWindowToTile(xy);
 	}
 
 	/**
@@ -162,11 +159,8 @@ struct GoalListWindow : public Window {
 		uint num_company = 0;
 		const Goal *s;
 		FOR_ALL_GOALS(s) {
-			if (s->company == INVALID_COMPANY) {
-				num_global++;
-			} else if (s->company == this->window_number) {
-				num_company++;
-			}
+			if (s->company == INVALID_COMPANY) num_global++;
+			else if (s->company == this->window_number) num_company++;
 		}
 
 		/* Count the 'none' lines. */

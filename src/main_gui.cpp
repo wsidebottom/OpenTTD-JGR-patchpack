@@ -437,7 +437,7 @@ struct MainWindow : Window
 
 	virtual void OnMouseWheel(int wheel)
 	{
-		if (_ctrl_pressed) {
+		if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 			/* Cycle through the drawing modes */
 			this->viewport->map_type = ChangeRenderMode(this->viewport, wheel < 0);
 			this->SetDirty();

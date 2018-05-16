@@ -1719,6 +1719,7 @@ static SettingsContainer &GetSettingsTree()
 			interface->Add(new SettingEntry("gui.vertical_toolbar"));
 			interface->Add(new SettingEntry("gui.compact_vertical_toolbar"));
 			interface->Add(new SettingEntry("gui.build_confirmation"));
+			interface->Add(new SettingEntry("gui.hide_windows"));
 			#ifdef __ANDROID__
 				interface->Add(new SettingEntry("gui.windows_titlebars"));
 				interface->Add(new SettingEntry("gui.windows_decorations"));

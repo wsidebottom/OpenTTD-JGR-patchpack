@@ -995,7 +995,7 @@ public:
 
 			case WID_IV_GOTO: {
 				Industry *i = Industry::Get(this->window_number);
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					ShowExtraViewPortWindow(i->location.GetCenterTile());
 				} else {
 					ScrollMainWindowToTile(i->location.GetCenterTile());
@@ -1412,7 +1412,7 @@ public:
 			case WID_ID_INDUSTRY_LIST: {
 				uint p = this->vscroll->GetScrolledRowFromWidget(pt.y, this, WID_ID_INDUSTRY_LIST, WD_FRAMERECT_TOP);
 				if (p < this->industries.Length()) {
-					if (_ctrl_pressed) {
+					if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 						ShowExtraViewPortWindow(this->industries[p]->location.tile);
 					} else {
 						ScrollMainWindowToTile(this->industries[p]->location.tile);

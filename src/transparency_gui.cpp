@@ -73,7 +73,7 @@ public:
 	virtual void OnClick(Point pt, int widget, int click_count)
 	{
 		if (widget >= WID_TT_BEGIN && widget < WID_TT_END) {
-			if (_ctrl_pressed) {
+			if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 				/* toggle the bit of the transparencies lock variable */
 				ToggleTransparencyLock((TransparencyOption)(widget - WID_TT_BEGIN));
 				this->SetDirty();

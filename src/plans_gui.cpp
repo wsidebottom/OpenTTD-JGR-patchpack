@@ -139,7 +139,7 @@ struct PlansWindow : Window {
 				break;
 			case WID_PLN_LIST: {
 				int new_selected = this->vscroll->GetScrolledRowFromWidget(pt.y, this, WID_PLN_LIST, WD_FRAMERECT_TOP);
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					if (new_selected != INT_MAX) {
 						TileIndex t;
 						if (this->list[new_selected].is_plan) {

@@ -2968,7 +2968,7 @@ static TrackStatus GetTileTrackStatus_Track(TileIndex tile, TransportType mode, 
 
 static bool ClickTile_Track(TileIndex tile)
 {
-	if (_ctrl_pressed && IsPlainRailTile(tile)) {
+	if ((_ctrl_pressed || _ctrl_toolbar_pressed) && IsPlainRailTile(tile)) {
 		TrackBits trackbits = TrackStatusToTrackBits(GetTileTrackStatus(tile, TRANSPORT_RAIL, 0));
 
 		if (trackbits & TRACK_BIT_VERT) { // N-S direction

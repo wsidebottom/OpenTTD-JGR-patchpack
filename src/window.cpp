@@ -733,7 +733,7 @@ static void DispatchLeftClickEvent(Window *w, int x, int y, int click_count, boo
 			return;
 
 		case WWT_DEFSIZEBOX: {
-			if (_ctrl_pressed) {
+			if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 				w->window_desc->pref_width = w->width;
 				w->window_desc->pref_height = w->height;
 			} else {
@@ -767,7 +767,7 @@ static void DispatchLeftClickEvent(Window *w, int x, int y, int click_count, boo
 		case WWT_STICKYBOX:
 			w->flags ^= WF_STICKY;
 			nw->SetDirty(w);
-			if (_ctrl_pressed) w->window_desc->pref_sticky = (w->flags & WF_STICKY) != 0;
+			if ((_ctrl_pressed || _ctrl_toolbar_pressed)) w->window_desc->pref_sticky = (w->flags & WF_STICKY) != 0;
 			return;
 
 		default:
@@ -3079,7 +3079,7 @@ static void HandleKeyScrolling()
 	 * doesn't have an edit-box as focused widget.
 	 */
 	if (_dirkeys && !EditBoxInGlobalFocus()) {
-		int factor = _shift_pressed ? 50 : 10;
+		int factor = (_shift_pressed || _shift_toolbar_pressed) ? 50 : 10;
 		ScrollMainViewport(scrollamt[_dirkeys][0] * factor, scrollamt[_dirkeys][1] * factor);
 	}
 }

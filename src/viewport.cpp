@@ -3400,7 +3400,7 @@ bool HandleViewportMouseUp(const ViewPort *vp, int x, int y)
 		if (IsCompanyBuildableVehicleType(v)) {
 			v = v->First();
 			WindowClass wc = _thd.GetCallbackWnd()->window_class;
-			if (_ctrl_pressed && v->owner == _local_company) {
+			if ((_ctrl_pressed || _ctrl_toolbar_pressed) && v->owner == _local_company) {
 				StartStopVehicle(v, true);
 			} else if (wc != WC_CREATE_TEMPLATE && wc != WC_TEMPLATEGUI_MAIN) {
 				ShowVehicleViewWindow(v);
@@ -3542,7 +3542,7 @@ void TileHighlightData::Reset()
  */
 bool TileHighlightData::IsDraggingDiagonal()
 {
-	return (this->place_mode & HT_DIAGONAL) != 0 && _ctrl_pressed && _left_button_down;
+	return (this->place_mode & HT_DIAGONAL) != 0 && (_ctrl_pressed || _ctrl_toolbar_pressed) && _left_button_down;
 }
 
 /**

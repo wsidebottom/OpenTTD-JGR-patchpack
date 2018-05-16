@@ -387,7 +387,7 @@ void ShowBuildBridgeWindow(TileIndex start, TileIndex end, TransportType transpo
 		case TRANSPORT_RAIL: last_bridge_type = _last_railbridge_type; break;
 		default: break; // water ways and air routes don't have bridge types
 	}
-	if (_ctrl_pressed && CheckBridgeAvailability(last_bridge_type, bridge_len).Succeeded()) {
+	if ((_ctrl_pressed || _ctrl_toolbar_pressed) && CheckBridgeAvailability(last_bridge_type, bridge_len).Succeeded()) {
 		DoCommandP(end, start, type | last_bridge_type, CMD_BUILD_BRIDGE | CMD_MSG(STR_ERROR_CAN_T_BUILD_BRIDGE_HERE), CcBuildBridge);
 		return;
 	}
@@ -398,9 +398,8 @@ void ShowBuildBridgeWindow(TileIndex start, TileIndex end, TransportType transpo
 	CommandCost ret = DoCommand(end, start, type, CommandFlagsToDCFlags(GetCommandFlags(CMD_BUILD_BRIDGE)) | DC_QUERY_COST, CMD_BUILD_BRIDGE);
 
 	GUIBridgeList *bl = NULL;
-	if (ret.Failed()) {
-		errmsg = ret.GetErrorMessage();
-	} else {
+	if (ret.Failed()) errmsg = ret.GetErrorMessage();
+	else {
 		/* check which bridges can be built */
 		const uint tot_bridgedata_len = CalcBridgeLenCostFactor(bridge_len + 2);
 

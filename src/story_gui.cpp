@@ -399,7 +399,7 @@ protected:
 				break;
 
 			case SPET_LOCATION:
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					ShowExtraViewPortWindow((TileIndex)pe.referenced_id);
 				} else {
 					ScrollMainWindowToTile((TileIndex)pe.referenced_id);

@@ -126,11 +126,8 @@ struct SelectGameWindow : public Window {
 
 		switch (widget) {
 			case WID_SGI_GENERATE_GAME:
-				if (_ctrl_pressed) {
-					StartNewGameWithoutGUI(GENERATE_NEW_SEED);
-				} else {
-					ShowGenerateLandscape();
-				}
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) StartNewGameWithoutGUI(GENERATE_NEW_SEED);
+				else ShowGenerateLandscape();
 				break;
 
 			case WID_SGI_LOAD_GAME:      ShowSaveLoadDialog(FT_SAVEGAME, SLO_LOAD); break;
@@ -139,11 +136,8 @@ struct SelectGameWindow : public Window {
 			case WID_SGI_EDIT_SCENARIO:  StartScenarioEditor(); break;
 
 			case WID_SGI_PLAY_NETWORK:
-				if (!_network_available) {
-					ShowErrorMessage(STR_NETWORK_ERROR_NOTAVAILABLE, INVALID_STRING_ID, WL_ERROR);
-				} else {
-					ShowNetworkGameWindow();
-				}
+				if (!_network_available) ShowErrorMessage(STR_NETWORK_ERROR_NOTAVAILABLE, INVALID_STRING_ID, WL_ERROR);
+				else ShowNetworkGameWindow();
 				break;
 
 			case WID_SGI_TEMPERATE_LANDSCAPE: case WID_SGI_ARCTIC_LANDSCAPE:
@@ -156,11 +150,8 @@ struct SelectGameWindow : public Window {
 			case WID_SGI_SETTINGS_OPTIONS:ShowGameSettings(); break;
 			case WID_SGI_GRF_SETTINGS:    ShowNewGRFSettings(true, true, false, &_grfconfig_newgame); break;
 			case WID_SGI_CONTENT_DOWNLOAD:
-				if (!_network_available) {
-					ShowErrorMessage(STR_NETWORK_ERROR_NOTAVAILABLE, INVALID_STRING_ID, WL_ERROR);
-				} else {
-					ShowNetworkContentListWindow();
-				}
+				if (!_network_available) ShowErrorMessage(STR_NETWORK_ERROR_NOTAVAILABLE, INVALID_STRING_ID, WL_ERROR);
+				else ShowNetworkContentListWindow();
 				break;
 			case WID_SGI_AI_SETTINGS:     ShowAIConfigWindow(); break;
 			case WID_SGI_TUTORIAL:        ShowTutorialWindow(); break;

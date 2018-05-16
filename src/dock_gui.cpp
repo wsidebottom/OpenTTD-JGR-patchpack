@@ -237,7 +237,7 @@ struct BuildDocksToolbarWindow : Window {
 					GUIPlaceProcDragXY(select_proc, start_tile, end_tile);
 					break;
 				case DDSP_CREATE_WATER:
-					DoCommandP(end_tile, start_tile, (_game_mode == GM_EDITOR && _ctrl_pressed) ? WATER_CLASS_SEA : WATER_CLASS_CANAL, CMD_BUILD_CANAL | CMD_MSG(STR_ERROR_CAN_T_BUILD_CANALS), CcPlaySound_SPLAT_WATER);
+					DoCommandP(end_tile, start_tile, (_game_mode == GM_EDITOR && (_ctrl_pressed || _ctrl_toolbar_pressed)) ? WATER_CLASS_SEA : WATER_CLASS_CANAL, CMD_BUILD_CANAL | CMD_MSG(STR_ERROR_CAN_T_BUILD_CANALS), CcPlaySound_SPLAT_WATER);
 					break;
 				case DDSP_CREATE_RIVER:
 					DoCommandP(end_tile, start_tile, WATER_CLASS_RIVER, CMD_BUILD_CANAL | CMD_MSG(STR_ERROR_CAN_T_PLACE_RIVERS), CcPlaySound_SPLAT_WATER);
@@ -246,7 +246,7 @@ struct BuildDocksToolbarWindow : Window {
 					uint32 p2 = (uint32)INVALID_STATION << 16; // no station to join
 
 					/* Tile is always the land tile, so need to evaluate _thd.pos. */
-					CommandContainer cmdcont = { start_tile, _ctrl_pressed, p2, CMD_BUILD_DOCK | CMD_MSG(STR_ERROR_CAN_T_BUILD_DOCK_HERE), CcBuildDocks, 0, "" };
+					CommandContainer cmdcont = { start_tile, (_ctrl_pressed || _ctrl_toolbar_pressed), p2, CMD_BUILD_DOCK | CMD_MSG(STR_ERROR_CAN_T_BUILD_DOCK_HERE), CcBuildDocks, 0, "" };
 
 					//SetObjectToPlace(SPR_CURSOR_DOCK, PAL_NONE, HT_SPECIAL, this->window_class, this->window_number);
 					ShowSelectStationIfNeeded(cmdcont, TileArea(start_tile, end_tile));
@@ -290,7 +290,7 @@ struct BuildDocksToolbarWindow : Window {
 		MoveAllHiddenWindowsBackToScreen();
 		this->RaiseButtons();
 
-		if (ConfirmationWindowShown() && _ctrl_pressed) return;
+		if (ConfirmationWindowShown() && (_ctrl_pressed || _ctrl_toolbar_pressed)) return;
 		DeleteWindowById(WC_BUILD_STATION, TRANSPORT_WATER);
 		DeleteWindowById(WC_BUILD_DEPOT, TRANSPORT_WATER);
 		DeleteWindowById(WC_SELECT_STATION, 0);

@@ -878,7 +878,7 @@ static Order GetOrderCmdFromTile(const Vehicle *v, TileIndex tile)
 				ODTFB_PART_OF_ORDERS,
 				(_settings_client.gui.new_nonstop && v->IsGroundVehicle()) ? ONSF_NO_STOP_AT_INTERMEDIATE_STATIONS : ONSF_STOP_EVERYWHERE);
 
-		if (_ctrl_pressed) order.SetDepotOrderType((OrderDepotTypeFlags)(order.GetDepotOrderType() ^ ODTFB_SERVICE));
+		if ((_ctrl_pressed || _ctrl_toolbar_pressed)) order.SetDepotOrderType((OrderDepotTypeFlags)(order.GetDepotOrderType() ^ ODTFB_SERVICE));
 
 		return order;
 	}
@@ -888,7 +888,7 @@ static Order GetOrderCmdFromTile(const Vehicle *v, TileIndex tile)
 			v->type == VEH_TRAIN &&
 			IsInfraTileUsageAllowed(VEH_TRAIN, v->owner, tile)) {
 		order.MakeGoToWaypoint(GetStationIndex(tile));
-		if (_settings_client.gui.new_nonstop != _ctrl_pressed) order.SetNonStopType(ONSF_NO_STOP_AT_ANY_STATION);
+		if (_settings_client.gui.new_nonstop != (_ctrl_pressed || _ctrl_toolbar_pressed)) order.SetNonStopType(ONSF_NO_STOP_AT_ANY_STATION);
 		return order;
 	}
 
@@ -911,7 +911,7 @@ static Order GetOrderCmdFromTile(const Vehicle *v, TileIndex tile)
 			(facil = FACIL_TRUCK_STOP, 1);
 			if (st->facilities & facil) {
 				order.MakeGoToStation(st_index);
-				if (_ctrl_pressed) order.SetLoadType(OLF_FULL_LOAD_ANY);
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) order.SetLoadType(OLF_FULL_LOAD_ANY);
 				if (_settings_client.gui.new_nonstop && v->IsGroundVehicle()) order.SetNonStopType(ONSF_NO_STOP_AT_INTERMEDIATE_STATIONS);
 				order.SetStopLocation(v->type == VEH_TRAIN ? (OrderStopLocation)(_settings_client.gui.stop_location) : OSL_PLATFORM_FAR_END);
 				return order;
@@ -1243,11 +1243,11 @@ private:
 	void OrderClick_Skip()
 	{
 		/* Don't skip when there's nothing to skip */
-		if (_ctrl_pressed && this->vehicle->cur_implicit_order_index == this->OrderGetSel()) return;
+		if ((_ctrl_pressed || _ctrl_toolbar_pressed) && this->vehicle->cur_implicit_order_index == this->OrderGetSel()) return;
 		if (this->vehicle->GetNumOrders() <= 1) return;
 
-		DoCommandP(this->vehicle->tile, this->vehicle->index, _ctrl_pressed ? this->OrderGetSel() : ((this->vehicle->cur_implicit_order_index + 1) % this->vehicle->GetNumOrders()),
-				CMD_SKIP_TO_ORDER | CMD_MSG(_ctrl_pressed ? STR_ERROR_CAN_T_SKIP_TO_ORDER : STR_ERROR_CAN_T_SKIP_ORDER));
+		DoCommandP(this->vehicle->tile, this->vehicle->index, (_ctrl_pressed || _ctrl_toolbar_pressed) ? this->OrderGetSel() : ((this->vehicle->cur_implicit_order_index + 1) % this->vehicle->GetNumOrders()),
+				CMD_SKIP_TO_ORDER | CMD_MSG((_ctrl_pressed || _ctrl_toolbar_pressed) ? STR_ERROR_CAN_T_SKIP_TO_ORDER : STR_ERROR_CAN_T_SKIP_ORDER));
 	}
 
 	/**
@@ -1275,7 +1275,7 @@ private:
 		/* Don't try to stop sharing orders if 'End of Shared Orders' isn't selected. */
 		if (!this->vehicle->IsOrderListShared() || this->selected_order != this->vehicle->GetNumOrders()) return;
 		/* If Ctrl is pressed, delete the order list as if we clicked the 'Delete' button. */
-		if (_ctrl_pressed) {
+		if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 			this->OrderClick_Delete();
 			return;
 		}
@@ -1296,7 +1296,7 @@ private:
 	 */
 	void OrderClick_Refit(int i, bool auto_refit)
 	{
-		if (_ctrl_pressed) {
+		if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 			/* Cancel refitting */
 			DoCommandP(this->vehicle->tile, this->vehicle->index, (this->OrderGetSel() << 16) | (CT_NO_REFIT << 8) | CT_NO_REFIT, CMD_ORDER_REFIT);
 		} else {
@@ -1672,7 +1672,7 @@ public:
 			}
 		}
 
-		this->GetWidget<NWidgetStacked>(WID_O_SEL_SHARED)->SetDisplayedPlane(_ctrl_pressed ? DP_SHARED_VEH_GROUP : DP_SHARED_LIST);
+		this->GetWidget<NWidgetStacked>(WID_O_SEL_SHARED)->SetDisplayedPlane((_ctrl_pressed || _ctrl_toolbar_pressed) ? DP_SHARED_VEH_GROUP : DP_SHARED_LIST);
 
 		/* Disable list of vehicles with the same shared orders if there is no list */
 		this->SetWidgetDisabledState(WID_O_SHARED_ORDER_LIST, !(shared_orders || _settings_client.gui.enable_single_veh_shared_order_gui));
@@ -1837,7 +1837,7 @@ public:
 
 				VehicleOrderID sel = this->GetOrderFromPt(pt.y);
 
-				if (_ctrl_pressed && sel < this->vehicle->GetNumOrders()) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed) && sel < this->vehicle->GetNumOrders()) {
 					TileIndex xy = this->vehicle->GetOrder(sel)->GetLocation(this->vehicle);
 					if (xy != INVALID_TILE) ScrollMainWindowToTile(xy);
 					return;
@@ -2163,7 +2163,7 @@ public:
 		 * ourself as it easily copies orders of vehicles within a station when we mean the station.
 		 * Obviously if you press CTRL on a non-empty orders vehicle you know what you are doing
 		 * TODO: give a warning message */
-		bool share_order = _ctrl_pressed || this->goto_type == OPOS_SHARE;
+		bool share_order = (_ctrl_pressed || _ctrl_toolbar_pressed) || this->goto_type == OPOS_SHARE;
 		if (this->vehicle->GetNumOrders() != 0 && !share_order) return false;
 
 		if (DoCommandP(this->vehicle->tile, this->vehicle->index | (share_order ? CO_SHARE : CO_COPY) << 30, v->index,

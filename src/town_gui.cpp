@@ -424,7 +424,7 @@ public:
 	{
 		switch (widget) {
 			case WID_TV_CENTER_VIEW: // scroll to location
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					ShowExtraViewPortWindow(this->town->xy);
 				} else {
 					ScrollMainWindowToTile(this->town->xy);
@@ -881,7 +881,7 @@ public:
 
 				const Town *t = this->towns[id_v];
 				assert(t != NULL);
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					ShowExtraViewPortWindow(t->xy);
 				} else {
 					ScrollMainWindowToTile(t->xy);
@@ -1132,7 +1132,7 @@ public:
 				townnameparts, CMD_FOUND_TOWN | CMD_MSG(errstr), cc, name);
 
 		/* Rerandomise name, if success and no cost-estimation. */
-		if (success && !_shift_pressed) this->RandomTownName();
+		if (success && !(_shift_pressed || _shift_toolbar_pressed)) this->RandomTownName();
 	}
 
 	virtual void OnClick(Point pt, int widget, int click_count)
@@ -1925,7 +1925,7 @@ static void PlaceProc_House(TileIndex tile)
 		if (HasBit(house_zones, town_zone)) {
 			/* If CTRL is NOT pressed keep only single town on the list, the best one.
 			 * Otherwise add all towns to the list so they can be shown to the player. */
-			if (!_ctrl_pressed) {
+			if (!(_ctrl_pressed || _ctrl_toolbar_pressed)) {
 				if ((int)town_zone < best_zone) continue;
 				uint dist = DistanceSquare(tile, t->xy);
 				if (dist >= best_dist) continue;
@@ -1952,7 +1952,7 @@ static void PlaceProc_House(TileIndex tile)
 		""
 	};
 
-	if (!_ctrl_pressed) {
+	if (!(_ctrl_pressed || _ctrl_toolbar_pressed)) {
 		SB(cmd.p1, 16, 16, towns[0]); // set the town, it's alone on the list
 		DoCommandP(&cmd);
 	} else {

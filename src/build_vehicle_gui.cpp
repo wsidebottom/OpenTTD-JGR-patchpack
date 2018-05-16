@@ -1323,7 +1323,7 @@ struct BuildVehicleWindow : Window {
 				size_t num_items = this->eng_list.Length();
 				this->sel_engine = (i < num_items) ? this->eng_list[i] : INVALID_ENGINE;
 				this->SetDirty();
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					this->OnClick(pt, WID_BV_SHOW_HIDE, 1);
 				} else if (click_count > 1 && !this->listview_mode) {
 					this->OnClick(pt, WID_BV_BUILD, 1);

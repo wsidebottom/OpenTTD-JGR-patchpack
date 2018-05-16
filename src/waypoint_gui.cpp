@@ -91,7 +91,7 @@ public:
 	{
 		switch (widget) {
 			case WID_W_CENTER_VIEW: // scroll to location
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					ShowExtraViewPortWindow(this->GetCenterTile());
 				} else {
 					ScrollMainWindowToTile(this->GetCenterTile());

@@ -121,7 +121,7 @@ static void TrainDepotMoveVehicle(const Vehicle *wagon, VehicleID sel, const Veh
 
 	if (wagon == v) return;
 
-	DoCommandP(v->tile, v->index | ((_ctrl_pressed ? 1 : 0) << 20) | (1 << 21) , wagon == NULL ? INVALID_VEHICLE : wagon->index,
+	DoCommandP(v->tile, v->index | (((_ctrl_pressed || _ctrl_toolbar_pressed) ? 1 : 0) << 20) | (1 << 21) , wagon == NULL ? INVALID_VEHICLE : wagon->index,
 			CMD_MOVE_RAIL_VEHICLE | CMD_MSG(STR_ERROR_CAN_T_MOVE_VEHICLE), CcVirtualTrainWagonsMoved);
 }
 
@@ -362,12 +362,12 @@ public:
 				if (this->IsWidgetDisabled(widget)) return;
 				if (this->sel == INVALID_VEHICLE) return;
 
-				int sell_cmd = (_ctrl_pressed) ? 1 : 0;
+				int sell_cmd = ((_ctrl_pressed || _ctrl_toolbar_pressed)) ? 1 : 0;
 
 				Train* train_to_delete = Train::Get(this->sel);
 
 				if (virtual_train == train_to_delete) {
-					virtual_train = (_ctrl_pressed) ? NULL : virtual_train->GetNextUnit();
+					virtual_train = ((_ctrl_pressed || _ctrl_toolbar_pressed)) ? NULL : virtual_train->GetNextUnit();
 				}
 
 				DoCommandP(0, this->sel | (sell_cmd << 20) | (1 << 21), 0, GetCmdSellVeh(VEH_TRAIN), CcDeleteVirtualTrain);
@@ -532,7 +532,7 @@ public:
 		} else if (v != NULL) {
 			SetObjectToPlaceWnd(SPR_CURSOR_MOUSE, PAL_NONE, HT_DRAG, this);
 			SetMouseCursorVehicle(v, EIT_PURCHASE);
-			_cursor.vehchain = _ctrl_pressed;
+			_cursor.vehchain = (_ctrl_pressed || _ctrl_toolbar_pressed);
 
 			this->sel = v->index;
 			this->SetDirty();

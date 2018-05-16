@@ -1182,7 +1182,7 @@ struct NetworkStartServerWindow : public Window {
 					break;
 				}
 				_is_network_server = true;
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					StartNewGameWithoutGUI(GENERATE_NEW_SEED);
 				} else {
 					ShowGenerateLandscape();

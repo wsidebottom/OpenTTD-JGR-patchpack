@@ -509,7 +509,7 @@ public:
 				/* do not check HasStationInUse - it is slow and may be invalid */
 				assert(st->owner == (Owner)this->window_number || st->owner == OWNER_NONE);
 
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					ShowExtraViewPortWindow(st->xy);
 				} else {
 					ScrollMainWindowToTile(st->xy);
@@ -522,7 +522,7 @@ public:
 			case WID_STL_BUS:
 			case WID_STL_AIRPLANE:
 			case WID_STL_SHIP:
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					ToggleBit(this->facilities, widget - WID_STL_TRAIN);
 					this->ToggleWidgetLoweredState(widget);
 				} else {
@@ -570,7 +570,7 @@ public:
 				break;
 
 			case WID_STL_NOCARGOWAITING:
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					this->include_empty = !this->include_empty;
 					this->ToggleWidgetLoweredState(WID_STL_NOCARGOWAITING);
 				} else {
@@ -592,7 +592,7 @@ public:
 					/* Determine the selected cargo type */
 					const CargoSpec *cs = _sorted_cargo_specs[widget - WID_STL_CARGOSTART];
 
-					if (_ctrl_pressed) {
+					if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 						ToggleBit(this->cargo_filter, cs->Index());
 						this->ToggleWidgetLoweredState(widget);
 					} else {
@@ -1880,7 +1880,7 @@ struct StationViewWindow : public Window {
 	void HandleCargoWaitingClick(int row)
 	{
 		if (row < 0 || (uint)row >= this->displayed_rows.size()) return;
-		if (_ctrl_pressed) {
+		if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 			this->scroll_to_row = row;
 		} else {
 			RowDisplay &display = this->displayed_rows[row];
@@ -1901,7 +1901,7 @@ struct StationViewWindow : public Window {
 				break;
 
 			case WID_SV_LOCATION:
-				if (_ctrl_pressed) {
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) {
 					ShowExtraViewPortWindow(Station::Get(this->window_number)->xy);
 				} else {
 					ScrollMainWindowToTile(Station::Get(this->window_number)->xy);
@@ -2391,7 +2391,7 @@ static bool StationJoinerNeeded(const CommandContainer &cmd, TileArea ta)
 	}
 
 	/* only show the popup, if we press ctrl */
-	if (!_ctrl_pressed) return false;
+	if (!(_ctrl_pressed || _ctrl_toolbar_pressed)) return false;
 
 	/* Now check if we could build there */
 	if (DoCommand(&cmd, CommandFlagsToDCFlags(GetCommandFlags(cmd.cmd))).Failed()) return false;

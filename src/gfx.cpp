@@ -35,6 +35,8 @@ byte _support8bpp;
 CursorVars _cursor;
 bool _ctrl_pressed;   ///< Is Ctrl pressed?
 bool _shift_pressed;  ///< Is Shift pressed?
+bool _ctrl_toolbar_pressed;
+bool _shift_toolbar_pressed;
 bool _move_pressed;
 
 byte _fast_forward;

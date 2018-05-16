@@ -685,7 +685,7 @@ struct TimetableWindow : Window {
 
 			case WID_VT_START_DATE: // Change the date that the timetable starts.
 				if (_settings_client.gui.time_in_minutes && _settings_client.gui.timetable_start_text_entry) {
-					this->set_start_date_all = v->orders.list->IsCompleteTimetable() && _ctrl_pressed;
+					this->set_start_date_all = v->orders.list->IsCompleteTimetable() && (_ctrl_pressed || _ctrl_toolbar_pressed);
 					StringID str = STR_JUST_INT;
 					uint64 time = _scaled_date_ticks;
 					time /= _settings_client.gui.ticks_per_minute;
@@ -695,7 +695,7 @@ struct TimetableWindow : Window {
 					SetDParam(0, time);
 					ShowQueryString(str, STR_TIMETABLE_STARTING_DATE, 31, this, CS_NUMERAL, QSF_ACCEPT_UNCHANGED);
 				} else {
-					ShowSetDateWindow(this, v->index | (v->orders.list->IsCompleteTimetable() && _ctrl_pressed ? 1U << 20 : 0),
+					ShowSetDateWindow(this, v->index | (v->orders.list->IsCompleteTimetable() && (_ctrl_pressed || _ctrl_toolbar_pressed) ? 1U << 20 : 0),
 							_scaled_date_ticks, _cur_year, _cur_year + 15, ChangeTimetableStartCallback);
 				}
 				break;
@@ -720,7 +720,7 @@ struct TimetableWindow : Window {
 				}
 
 				this->query_is_speed_query = false;
-				this->change_timetable_all = (order != NULL) && (selected % 2 == 0) && _ctrl_pressed;
+				this->change_timetable_all = (order != NULL) && (selected % 2 == 0) && (_ctrl_pressed || _ctrl_toolbar_pressed);
 				ShowQueryString(current, STR_TIMETABLE_CHANGE_TIME, 31, this, CS_NUMERAL, QSF_ACCEPT_UNCHANGED);
 				break;
 			}
@@ -741,20 +741,20 @@ struct TimetableWindow : Window {
 				}
 
 				this->query_is_speed_query = true;
-				this->change_timetable_all = (order != NULL) && _ctrl_pressed;
+				this->change_timetable_all = (order != NULL) && (_ctrl_pressed || _ctrl_toolbar_pressed);
 				ShowQueryString(current, STR_TIMETABLE_CHANGE_SPEED, 31, this, CS_NUMERAL, QSF_NONE);
 				break;
 			}
 
 			case WID_VT_CLEAR_TIME: { // Clear waiting time.
 				uint32 p1 = PackTimetableArgs(v, this->sel_index, false, true);
-				DoCommandP(0, p1, 0, (_ctrl_pressed ? CMD_BULK_CHANGE_TIMETABLE : CMD_CHANGE_TIMETABLE) | CMD_MSG(STR_ERROR_CAN_T_TIMETABLE_VEHICLE));
+				DoCommandP(0, p1, 0, ((_ctrl_pressed || _ctrl_toolbar_pressed) ? CMD_BULK_CHANGE_TIMETABLE : CMD_CHANGE_TIMETABLE) | CMD_MSG(STR_ERROR_CAN_T_TIMETABLE_VEHICLE));
 				break;
 			}
 
 			case WID_VT_CLEAR_SPEED: { // Clear max speed button.
 				uint32 p1 = PackTimetableArgs(v, this->sel_index, true);
-				DoCommandP(0, p1, UINT16_MAX, (_ctrl_pressed ? CMD_BULK_CHANGE_TIMETABLE : CMD_CHANGE_TIMETABLE) | CMD_MSG(STR_ERROR_CAN_T_TIMETABLE_VEHICLE));
+				DoCommandP(0, p1, UINT16_MAX, ((_ctrl_pressed || _ctrl_toolbar_pressed) ? CMD_BULK_CHANGE_TIMETABLE : CMD_CHANGE_TIMETABLE) | CMD_MSG(STR_ERROR_CAN_T_TIMETABLE_VEHICLE));
 				break;
 			}
 
@@ -765,7 +765,7 @@ struct TimetableWindow : Window {
 			case WID_VT_AUTOFILL: { // Autofill the timetable.
 				uint32 p2 = 0;
 				if (!HasBit(v->vehicle_flags, VF_AUTOFILL_TIMETABLE)) SetBit(p2, 0);
-				if (_ctrl_pressed) SetBit(p2, 1);
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) SetBit(p2, 1);
 				DoCommandP(0, v->index, p2, CMD_AUTOFILL_TIMETABLE | CMD_MSG(STR_ERROR_CAN_T_TIMETABLE_VEHICLE));
 				break;
 			}
@@ -778,7 +778,7 @@ struct TimetableWindow : Window {
 			case WID_VT_AUTOMATE: {
 				uint32 p2 = 0;
 				if (!HasBit(v->vehicle_flags, VF_AUTOMATE_TIMETABLE)) SetBit(p2, 0);
-				if (_ctrl_pressed) SetBit(p2, 1);
+				if ((_ctrl_pressed || _ctrl_toolbar_pressed)) SetBit(p2, 1);
 				DoCommandP(0, v->index, p2, CMD_AUTOMATE_TIMETABLE | CMD_MSG(STR_ERROR_CAN_T_TIMETABLE_VEHICLE));
 				break;
 			}
@@ -870,7 +870,7 @@ struct TimetableWindow : Window {
 	{
 		this->GetWidget<NWidgetStacked>(WID_VT_ARRIVAL_DEPARTURE_SELECTION)->SetDisplayedPlane(_settings_client.gui.timetable_arrival_departure ? 0 : SZSP_NONE);
 		this->GetWidget<NWidgetStacked>(WID_VT_EXPECTED_SELECTION)->SetDisplayedPlane(_settings_client.gui.timetable_arrival_departure ? 0 : 1);
-		this->GetWidget<NWidgetStacked>(WID_VT_SEL_SHARED)->SetDisplayedPlane(this->vehicle->owner == _local_company && _ctrl_pressed ? 1 : 0);
+		this->GetWidget<NWidgetStacked>(WID_VT_SEL_SHARED)->SetDisplayedPlane(this->vehicle->owner == _local_company && (_ctrl_pressed || _ctrl_toolbar_pressed) ? 1 : 0);
 	}
 
 	virtual void OnFocus(Window *previously_focused_window)
