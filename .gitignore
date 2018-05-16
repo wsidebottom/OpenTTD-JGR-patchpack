@@ -48,3 +48,4 @@ src/os/windows/ottdres.rc
 !/config.lib
 !*.in
 *.tmp
+projects/.vs/openttd_vs140/v14/.suo

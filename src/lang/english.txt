@@ -1226,6 +1226,8 @@ STR_CONFIG_SETTING_FONT_SIZE                                    :{BLACK}Font siz
 STR_CONFIG_SETTING_FONT_SIZE_TOOLTIP                            :{BLACK}Size of all game fonts
 STR_CONFIG_SETTING_BUILD_CONFIRMATION                           :Confirm actions: {STRING2}
 STR_CONFIG_SETTING_BUILD_CONFIRMATION_HELPTEXT                  :Show confirmation dialog when building roads and stations
+STR_CONFIG_SETTING_HIDE_WINDOWS                                 :Hide windows: {STRING2}
+STR_CONFIG_SETTING_HIDE_WINDOWS_HELPTEXT                        :Hide windows upon placing an object on the map
 STR_CONFIG_SETTING_WINDOWS_TITLEBARS                            :Title bars
 STR_CONFIG_SETTING_WINDOWS_TITLEBARS_HELPTEXT                   :Show title bars for all windows, or hide them to save screen space
 STR_CONFIG_SETTING_WINDOWS_DECORATIONS                          :Window decorations: {STRING2}

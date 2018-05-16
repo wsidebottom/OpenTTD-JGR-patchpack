@@ -3874,18 +3874,14 @@ static void MoveAllWindowsOffScreen(bool moveOffScreen)
 				if (moveOffScreen) {
 					if (w->left < _screen.width) {
 						w->left += _screen.width;
-						if (w->viewport != NULL) {
-							w->viewport->left += _screen.width;
-						}
+						if (w->viewport != NULL) w->viewport->left += _screen.width;
 						//w->SetDirty();
 						updateScreen = true;
 					}
 				} else {
 					if (w->left >= _screen.width) {
 						w->left -= _screen.width;
-						if (w->viewport != NULL) {
-							w->viewport->left -= _screen.width;
-						}
+						if (w->viewport != NULL) w->viewport->left -= _screen.width;
 						w->SetDirty();
 						//updateScreen = true;
 					}
@@ -3895,15 +3891,13 @@ static void MoveAllWindowsOffScreen(bool moveOffScreen)
 	}
 	if (updateScreen) {
 		w = FindWindowById(WC_MAIN_WINDOW, 0);
-		if (w) {
-			w->SetDirty();
-		}
+		if (w) w->SetDirty();
 	}
 }
 
 void MoveAllWindowsOffScreen()
 {
-	MoveAllWindowsOffScreen(true);
+	if (!_settings_client.gui.hide_windows) MoveAllWindowsOffScreen(true);
 }
 
 void MoveAllHiddenWindowsBackToScreen()

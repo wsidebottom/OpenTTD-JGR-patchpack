@@ -111,11 +111,13 @@ static const NWidgetPart _nested_load_dialog_widgets[] = {
 					NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_SL_LOAD_BUTTON), SetDataTip(STR_SAVELOAD_LOAD_BUTTON, STR_SAVELOAD_LOAD_TOOLTIP), SetFill(1, 0), SetResize(1, 0),
 				EndContainer(),
 			EndContainer(),
-			NWidget(NWID_HORIZONTAL),
-				NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_SL_LOAD_NETWORK_BUTTON), SetDataTip(STR_SAVELOAD_LOAD_NETWORK_BUTTON, STR_SAVELOAD_LOAD_NETWORK_TOOLTIP), SetFill(1, 0), SetResize(1, 0),
-				NWidget(WWT_RESIZEBOX, COLOUR_GREY),
+			#ifdef __ANDROID__
+				NWidget(NWID_HORIZONTAL),
+					NWidget(WWT_PUSHTXTBTN, COLOUR_GREY, WID_SL_LOAD_NETWORK_BUTTON), SetDataTip(STR_SAVELOAD_LOAD_NETWORK_BUTTON, STR_SAVELOAD_LOAD_NETWORK_TOOLTIP), SetFill(1, 0), SetResize(1, 0),
+					NWidget(WWT_RESIZEBOX, COLOUR_GREY),
+				EndContainer(),
+			#endif
 			EndContainer(),
-		EndContainer(),
 	EndContainer(),
 };
 
@@ -185,10 +187,12 @@ static const NWidgetPart _nested_save_dialog_widgets[] = {
 		EndContainer(),
 		NWidget(WWT_PANEL, COLOUR_GREY),
 			NWidget(WWT_EMPTY, INVALID_COLOUR, WID_SL_DETAILS), SetResize(1, 1), SetFill(1, 1),
-			NWidget(NWID_HORIZONTAL),
-				NWidget(WWT_TEXTBTN, COLOUR_GREY, WID_SL_SAVE_NETWORK_BUTTON), SetDataTip(STR_SAVELOAD_SAVE_NETWORK_BUTTON, STR_SAVELOAD_SAVE_NETWORK_TOOLTIP), SetFill(1, 1), SetResize(1, 0),
-				NWidget(WWT_RESIZEBOX, COLOUR_GREY),
-			EndContainer(),
+			#ifdef __ANDROID__
+				NWidget(NWID_HORIZONTAL),
+					NWidget(WWT_TEXTBTN, COLOUR_GREY, WID_SL_SAVE_NETWORK_BUTTON), SetDataTip(STR_SAVELOAD_SAVE_NETWORK_BUTTON, STR_SAVELOAD_SAVE_NETWORK_TOOLTIP), SetFill(1, 1), SetResize(1, 0),
+					NWidget(WWT_RESIZEBOX, COLOUR_GREY),
+				EndContainer(),
+			#endif
 		EndContainer(),
 	EndContainer(),
 };
@@ -647,6 +651,7 @@ public:
 				this->HandleButtonClick(WID_SL_SAVE_GAME);
 				break;
 
+#ifdef __ANDROID__
 			case WID_SL_SAVE_NETWORK_BUTTON:
 				_settings_client.gui.save_to_network = !_settings_client.gui.save_to_network;
 				this->SetWidgetLoweredState(WID_SL_SAVE_NETWORK_BUTTON, _settings_client.gui.save_to_network);
@@ -656,17 +661,14 @@ public:
 			case WID_SL_LOAD_NETWORK_BUTTON: {
 					char savePath[PATH_MAX];
 					FiosMakeSavegameName(savePath, NETWORK_SAVE_FILENAME, lastof(savePath));
-#ifdef __ANDROID__
-					if (!SDL_ANDROID_CloudLoad(savePath, NULL, "OpenTTD")) {
-						break;
-					}
-#endif
+					if (!SDL_ANDROID_CloudLoad(savePath, NULL, "OpenTTD")) break;
 					_file_to_saveload.SetMode(FIOS_TYPE_FILE);
 					_file_to_saveload.SetName(savePath);
 					_file_to_saveload.SetTitle("Network Save");
 					_switch_mode = SM_LOAD_GAME;
 					break;
 				}
+#endif
 		}
 	}
 
