@@ -36,8 +36,10 @@ void UpdateTileSelection();
 void SetSelectionTilesDirty();
 
 void StoreRailPlacementEndpoints(TileIndex start_tile, TileIndex end_tile, Track start_track, bool bidirectional = true);
-void ResetRailPlacementSnapping();
-bool CurrentlySnappingRailPlacement();
+//void StoreRailStationPlacementEndpoints(const TileArea &ta, Axis station_axis);
+void SetRailSnapMode(bool snapping);
+bool RailSnapping();
+void ResetRailSnapping(); 
 
 extern TileHighlightData _thd;
 

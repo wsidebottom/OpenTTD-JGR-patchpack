@@ -59,12 +59,13 @@ static SignalType _cur_signal_type;          ///< set the signal type (for signa
 static uint _cur_signal_button;              ///< set the signal button (for signal GUI)
 
 extern TileIndex _rail_track_endtile; // rail_cmd.cpp
+extern TileIndex _rail_overbuilt_endtile;
 
 /* Map the setting: default_signal_type to the corresponding signal type */
 static const SignalType _default_signal_type[] = {SIGTYPE_NORMAL, SIGTYPE_PBS, SIGTYPE_PBS_ONEWAY};
 
-static const int HOTKEY_POLYRAIL     = 0x1000;
-static const int HOTKEY_NEW_POLYRAIL = 0x1001;
+static const int HOTKEY_POLYRAIL     = 0x1000; ///< Open/close polyline rail tool. Sentinel to distinguish between button clicking and hotkey pressing.
+static const int HOTKEY_NEW_POLYRAIL = 0x1001; ///< Open/close polyline rail tool (new line). Sentinel to distinguish between button clicking and hotkey pressing.
 
 struct RailStationGUISettings {
 	Axis orientation;                 ///< Currently selected rail station orientation
@@ -189,6 +190,7 @@ static void PlaceRail_Waypoint(TileIndex tile)
 	}
 }
 
+void StoreRailStationPlacementEndpoints(const TileArea &ta, Axis station_axis);
 void CcStation(const CommandCost &result, TileIndex tile, uint32 p1, uint32 p2)
 {
 	if (result.Failed()) return;
@@ -196,6 +198,12 @@ void CcStation(const CommandCost &result, TileIndex tile, uint32 p1, uint32 p2)
 	if (_settings_client.sound.confirm) SndPlayTileFx(SND_20_SPLAT_RAIL, tile);
 	/* Only close the station builder window if the default station and non persistent building is chosen. */
 	if (_railstation.station_class == STAT_CLASS_DFLT && _railstation.station_type == 0 && !_settings_client.gui.persistent_buildingtools) ResetObjectToPlace();
+
+	uint w = GB(p1, 8, 8);
+	uint h = GB(p1, 16, 8);
+	Axis axis = (Axis)GB(p1, 4, 1);
+	if (axis == AXIS_X) Swap(w, h);
+	StoreRailStationPlacementEndpoints(TileArea(tile, w, h), axis);
 }
 
 /**
@@ -319,14 +327,15 @@ static bool RailToolbar_CtrlChanged(Window *w)
 
 	/* allow ctrl to switch remove mode only for these widgets */
 	// This breaks joining rail stations functionality on Android
-	/*
-	for (uint i = WID_RAT_BUILD_NS; i <= WID_RAT_BUILD_STATION; i++) {
-		if ((i <= WID_RAT_POLYRAIL || i >= WID_RAT_BUILD_WAYPOINT) && w->IsWidgetLowered(i)) {
-			ToggleRailButton_Remove(w);
-			return true;
+
+	#ifndef __ANDROID__
+		for (uint i = WID_RAT_BUILD_NS; i <= WID_RAT_BUILD_STATION; i++) {
+			if ((i <= WID_RAT_POLYRAIL || i >= WID_RAT_BUILD_WAYPOINT) && w->IsWidgetLowered(i)) {
+				ToggleRailButton_Remove(w);
+				return true;
+			}
 		}
-	}
-	*/
+	#endif
 
 	return false;
 }
@@ -347,11 +356,8 @@ static void BuildRailClick_Remove(Window *w)
 	if (w->IsWidgetLowered(WID_RAT_BUILD_STATION)) {
 		if (_remove_button_clicked) {
 			/* starting drag & drop remove */
-			if (!_settings_client.gui.station_dragdrop) {
-				SetTileSelectSize(1, 1);
-			} else {
-				VpSetPlaceSizingLimit(-1);
-			}
+			if (!_settings_client.gui.station_dragdrop) SetTileSelectSize(1, 1);
+			else VpSetPlaceSizingLimit(-1);
 		} else {
 			/* starting station build mode */
 			if (!_settings_client.gui.station_dragdrop) {
@@ -393,18 +399,21 @@ static void HandleAutodirPlacement()
 			GenericPlaceRailCmd(end_tile, track) : // one tile case
 			DoRailroadTrackCmd(start_tile, end_tile, track); // multitile selection
 
-	/* When overbuilding existing tracks in polyline mode we just want to move the
-	 * snap point without altering the user with the "already built" error. Don't
-	 * execute the command right away, firstly check if tracks are being overbuilt. */
-	if (!(_thd.place_mode & HT_POLY) || (_shift_pressed || _shift_toolbar_pressed) ||
-			DoCommand(&cmd, DC_AUTO | DC_NO_WATER).GetErrorMessage() != STR_ERROR_ALREADY_BUILT) {
-		/* place tracks */
-		if (!DoCommandP(&cmd)) return;
+	/* When overbuilding existing tracks in polyline mode we want to move the
+	 * snap point over the last overbuilt track piece. In such case we don't
+	 * want to show any errors to the user. Don't execute the command right
+	 * away, first check if overbuilding. */
+	bool success;
+	if (_shift_pressed || _shift_toolbar_pressed || !(_thd.place_mode & HT_POLY) || // skip testing when using shift or not in polyline
+			(success = DoCommand(&cmd, DC_AUTO | DC_NO_WATER).Succeeded(), success) || // test the command, execute if succeeded
+			_rail_overbuilt_endtile == INVALID_TILE) { // if the command failed, don't execute it (don't show the error) if there were overbuit tracks
+		/* Execute. */
+		success = DoCommandP(&cmd);
 	}
 
-	/* save new snap points for the polyline tool */
-	if (!(_shift_pressed || _shift_toolbar_pressed) && _rail_track_endtile != INVALID_TILE) {
-		StoreRailPlacementEndpoints(start_tile, _rail_track_endtile, track, true);
+	/* Save new snap points for the polyline tool, extend the snapping over overbuilt track pieces. */
+	if (!(_shift_pressed || _shift_toolbar_pressed) && (success || ((_thd.place_mode & HT_POLY) && _rail_overbuilt_endtile != INVALID_TILE))) {
+		StoreRailPlacementEndpoints(start_tile, success ? _rail_track_endtile : _rail_overbuilt_endtile, track, true);
 	}
 }
 
@@ -604,7 +613,7 @@ struct BuildRailToolbarWindow : Window {
 				break;
 
 			case WID_RAT_POLYRAIL: {
-				bool was_snap = CurrentlySnappingRailPlacement();
+				bool was_snap = RailSnapping();
 				bool was_open = this->IsWidgetLowered(WID_RAT_POLYRAIL);
 				bool do_snap;
 				bool do_open;
@@ -625,15 +634,13 @@ struct BuildRailToolbarWindow : Window {
 					do_snap = false;
 					do_open = !was_open;
 				}
-				/* close the tool explicitly so it can be re-opened in different snapping mode */
-				if (was_open) ResetObjectToPlace();
-				/* open the tool in desired mode */
-				if (do_open && HandlePlacePushButton(this, WID_RAT_POLYRAIL, GetRailTypeInfo(railtype)->cursor.autorail, do_snap ? (HT_RAIL | HT_POLY) : (HT_RAIL | HT_NEW_POLY))) {
-					/* if we are re-opening the tool but we couldn't switch the snapping
-					 * then close the tool instead of appearing to be doing nothing */
-					if (was_open && do_snap != CurrentlySnappingRailPlacement()) ResetObjectToPlace();
-				}
+				/* close/open the tool */
+				if (was_open != do_open) HandlePlacePushButton(this, WID_RAT_POLYRAIL, GetRailTypeInfo(railtype)->cursor.autorail, HT_RAIL | HT_POLY);
+				/* set snapping mode */
+				if (do_open) SetRailSnapMode(do_snap);
+
 				this->last_user_action = WID_RAT_POLYRAIL;
+				if (was_open == do_open) return; // prevent switching the "remove" button state
 				break;
 			}
 

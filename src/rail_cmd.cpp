@@ -54,6 +54,7 @@ RailtypeInfo _railtypes[RAILTYPE_END];
 RailType _sorted_railtypes[RAILTYPE_END];
 uint8 _sorted_railtypes_size;
 TileIndex _rail_track_endtile; ///< The end of a rail track; as hidden return from the rail build/remove command for GUI purposes.
+TileIndex _rail_overbuilt_endtile; ///< Tile where last consecutive rail track was overbuilt; hidden return from the rail build/remove command for GUI purposes. Availabe also after command failure.
 
 /** Enum holding the signal offset in the sprite sheet according to the side it is representing. */
 enum SignalOffsets {
@@ -456,6 +457,7 @@ CommandCost CmdBuildSingleRail(TileIndex tile, DoCommandFlag flags, uint32 p1, u
 	CommandCost cost(EXPENSES_CONSTRUCTION);
 
 	_rail_track_endtile = INVALID_TILE;
+	_rail_overbuilt_endtile = INVALID_TILE;
 
 	if (!ValParamRailtype(railtype) || !ValParamTrackOrientation(track)) return CMD_ERROR;
 
@@ -474,7 +476,7 @@ CommandCost CmdBuildSingleRail(TileIndex tile, DoCommandFlag flags, uint32 p1, u
 			ret = CheckTrackCombination(tile, trackbit, flags);
 			if (ret.Succeeded()) ret = EnsureNoTrainOnTrack(tile, track);
 			if (ret.Failed()) {
-				if (ret.GetErrorMessage() == STR_ERROR_ALREADY_BUILT) _rail_track_endtile = tile;
+				if (ret.GetErrorMessage() == STR_ERROR_ALREADY_BUILT) _rail_overbuilt_endtile = tile;
 				return ret;
 			}
 
@@ -567,7 +569,7 @@ CommandCost CmdBuildSingleRail(TileIndex tile, DoCommandFlag flags, uint32 p1, u
 			}
 
 			if (IsLevelCrossing(tile) && GetCrossingRailBits(tile) == trackbit) {
-				_rail_track_endtile = tile;
+				_rail_overbuilt_endtile = tile;
 				return_cmd_error(STR_ERROR_ALREADY_BUILT);
 			}
 		}
@@ -627,6 +629,7 @@ CommandCost CmdRemoveSingleRail(TileIndex tile, DoCommandFlag flags, uint32 p1, 
 	bool crossing = false;
 
 	_rail_track_endtile = INVALID_TILE;
+	_rail_overbuilt_endtile = INVALID_TILE;
 
 	if (!ValParamTrackOrientation(track)) return CMD_ERROR;
 	TrackBits trackbit = TrackToTrackBits(track);
@@ -891,6 +894,7 @@ static CommandCost CmdRailTrackHelper(TileIndex tile, DoCommandFlag flags, uint3
 	bool fail_if_obstacle = HasBit(p2, 9);
 
 	_rail_track_endtile = INVALID_TILE;
+	_rail_overbuilt_endtile = INVALID_TILE;
 
 	if ((!remove && !ValParamRailtype(railtype)) || !ValParamTrackOrientation(track)) return CMD_ERROR;
 	if (p1 >= MapSize()) return CMD_ERROR;
@@ -902,15 +906,21 @@ static CommandCost CmdRailTrackHelper(TileIndex tile, DoCommandFlag flags, uint3
 
 	bool had_success = false;
 	CommandCost last_error = CMD_ERROR;
+	bool overbuilding = true;
 	for (;;) {
-		TileIndex last_endtile = _rail_track_endtile;
+		TileIndex old_endtile = _rail_track_endtile;
+		TileIndex old_overbuilt = _rail_overbuilt_endtile;
 		CommandCost ret = DoCommand(tile, remove ? 0 : railtype, TrackdirToTrack(trackdir), flags, remove ? CMD_REMOVE_SINGLE_RAIL : CMD_BUILD_SINGLE_RAIL);
+
+		bool already_built = (ret.GetErrorMessage() == STR_ERROR_ALREADY_BUILT);
+		if (ret.Failed()) _rail_track_endtile = already_built ? _rail_overbuilt_endtile : old_endtile;
+		overbuilding &= already_built;
+		if (!overbuilding) _rail_overbuilt_endtile = old_overbuilt;
 
 		if (ret.Failed()) {
 			last_error = ret;
-			if (_rail_track_endtile == INVALID_TILE) _rail_track_endtile = last_endtile;
-			if (last_error.GetErrorMessage() != STR_ERROR_ALREADY_BUILT && !remove) {
-				if (fail_if_obstacle) return last_error;
+			if (!already_built && !remove) {
+				if (HasBit(p2, 8)) return last_error;
 				break;
 			}
 
