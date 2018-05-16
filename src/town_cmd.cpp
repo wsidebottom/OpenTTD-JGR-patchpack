@@ -1730,6 +1730,7 @@ static void DoCreateTown(Town *t, TileIndex tile, uint32 townnameparts, TownSize
 
 	/* Set the default cargo requirement for town growth */
 	switch (_settings_game.game_creation.landscape) {
+		case LT_TEMPERATE:
 		case LT_ARCTIC:
 			if (FindFirstCargoWithTownEffect(TE_FOOD) != NULL) t->goal[TE_FOOD] = TOWN_GROWTH_WINTER;
 			break;
@@ -2308,7 +2309,7 @@ static inline CommandCost IsHouseTypeAllowed(HouseID house, bool above_snowline,
 	if (!hs->enabled || hs->grf_prop.override != INVALID_HOUSE_ID) return CMD_ERROR;
 
 	/* Check if we can build this house in current climate. */
-	if (_settings_game.game_creation.landscape != LT_ARCTIC) {
+	if (_settings_game.game_creation.landscape != LT_ARCTIC && _settings_game.game_creation.landscape != LT_TEMPERATE) {
 		if (!(hs->building_availability & (HZ_TEMP << _settings_game.game_creation.landscape))) return CMD_ERROR;
 	} else if (above_snowline) {
 		if (!(hs->building_availability & HZ_SUBARTC_ABOVE)) return_cmd_error(STR_ERROR_BUILDING_NOT_ALLOWED_ABOVE_SNOW_LINE);
@@ -2520,7 +2521,7 @@ CommandCost CmdBuildHouse(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32
 	byte random_bits = GB(p2, 0, 8);
 
 	int max_z = GetTileMaxZ(tile);
-	bool above_snowline = (_settings_game.game_creation.landscape == LT_ARCTIC) && (max_z > HighestSnowLine());
+	bool above_snowline = (_settings_game.game_creation.landscape == LT_ARCTIC || _settings_game.game_creation.landscape != LT_TEMPERATE) && (max_z > HighestSnowLine());
 
 	CommandCost          ret = IsHouseTypeAllowed(house, above_snowline, TryGetTownRadiusGroup(t, tile));
 	if (ret.Succeeded()) ret = IsAnotherHouseTypeAllowedInTown(t, house);
@@ -2556,7 +2557,7 @@ static bool BuildTownHouse(Town *t, TileIndex tile)
 	/* no house allowed at all, bail out */
 	if (CanBuildHouseHere(tile, t->index, false).Failed()) return false;
 
-	bool above_snowline = _settings_game.game_creation.landscape == LT_ARCTIC && GetTileMaxZ(tile) > HighestSnowLine();
+	bool above_snowline = (_settings_game.game_creation.landscape == LT_ARCTIC || _settings_game.game_creation.landscape != LT_TEMPERATE) && GetTileMaxZ(tile) > HighestSnowLine();
 	HouseZonesBits zone = GetTownRadiusGroup(t, tile);
 
 	/* bits 0-4 are used

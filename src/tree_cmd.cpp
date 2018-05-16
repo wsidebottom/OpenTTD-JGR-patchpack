@@ -177,8 +177,6 @@ static TreeType GetRandomTreeType(TileIndex tile, uint seed)
 {
 	switch (_settings_game.game_creation.landscape) {
 		case LT_TEMPERATE:
-			return (TreeType)(seed * TREE_COUNT_TEMPERATE / 256 + TREE_TEMPERATE);
-
 		case LT_ARCTIC: {
 			if (!_settings_game.construction.trees_around_snow_line_enabled) {
 				return (TreeType)(seed * TREE_COUNT_SUB_ARCTIC / 256 + TREE_SUB_ARCTIC);
@@ -331,7 +329,7 @@ void PlaceTreesRandomly()
 			/* The higher we get, the more trees we plant */
 			j = GetTileZ(tile) * 2;
 			/* Above snowline more trees! */
-			if (_settings_game.game_creation.landscape == LT_ARCTIC && ht > GetSnowLine()) j *= 3;
+			if ((_settings_game.game_creation.landscape == LT_ARCTIC || _settings_game.game_creation.landscape != LT_TEMPERATE) && ht > GetSnowLine()) j *= 3;
 			while (j--) {
 				PlaceTreeAtSameHeight(tile, ht);
 			}
@@ -389,8 +387,8 @@ void GenerateTrees()
 	if (_settings_game.game_creation.tree_placer == TP_NONE) return;
 
 	switch (_settings_game.game_creation.tree_placer) {
-		case TP_ORIGINAL: i = _settings_game.game_creation.landscape == LT_ARCTIC ? 15 : 6; break;
-		case TP_IMPROVED: i = _settings_game.game_creation.landscape == LT_ARCTIC ?  4 : 2; break;
+		case TP_ORIGINAL: i = _settings_game.game_creation.landscape == LT_ARCTIC || _settings_game.game_creation.landscape != LT_TEMPERATE ? 15 : 6; break;
+		case TP_IMPROVED: i = _settings_game.game_creation.landscape == LT_ARCTIC || _settings_game.game_creation.landscape != LT_TEMPERATE ?  4 : 2; break;
 		default: NOT_REACHED();
 	}
 
@@ -511,7 +509,7 @@ CommandCost CmdPlantTree(TileIndex tile, DoCommandFlag flags, uint32 p1, uint32 
 					if (treetype == TREE_INVALID) {
 						treetype = GetRandomTreeType(tile, GB(Random(), 24, 8));
 						if (treetype == TREE_INVALID) {
-							if (_settings_game.construction.trees_around_snow_line_enabled && _settings_game.game_creation.landscape == LT_ARCTIC) {
+							if (_settings_game.construction.trees_around_snow_line_enabled && (_settings_game.game_creation.landscape == LT_ARCTIC || _settings_game.game_creation.landscape != LT_TEMPERATE)) {
 								if (GetTileZ(tile) <= (int)_settings_game.game_creation.snow_line_height) {
 									treetype = (TreeType)(GB(Random(), 24, 8) * TREE_COUNT_TEMPERATE / 256 + TREE_TEMPERATE);
 								} else {
@@ -736,6 +734,7 @@ static void TileLoop_Trees(TileIndex tile)
 	} else {
 		switch (_settings_game.game_creation.landscape) {
 			case LT_TROPIC: TileLoopTreesDesert(tile); break;
+			case LT_TEMPERATE:
 			case LT_ARCTIC: TileLoopTreesAlps(tile);   break;
 		}
 	}

@@ -2791,6 +2791,7 @@ static void TileLoop_Track(TileIndex tile)
 	}
 
 	switch (_settings_game.game_creation.landscape) {
+		case LT_TEMPERATE:
 		case LT_ARCTIC: {
 			int z;
 			Slope slope = GetTileSlope(tile, &z);

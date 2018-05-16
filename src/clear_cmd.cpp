@@ -285,6 +285,7 @@ static void TileLoop_Clear(TileIndex tile)
 
 	switch (_settings_game.game_creation.landscape) {
 		case LT_TROPIC: TileLoopClearDesert(tile); break;
+		case LT_TEMPERATE:
 		case LT_ARCTIC: TileLoopClearAlps(tile);   break;
 	}
 

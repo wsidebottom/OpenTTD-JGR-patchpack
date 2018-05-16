@@ -1622,6 +1622,7 @@ static const Roadside _town_road_types_2[][2] = {
 static void TileLoop_Road(TileIndex tile)
 {
 	switch (_settings_game.game_creation.landscape) {
+	case LT_TEMPERATE:
 		case LT_ARCTIC:
 			if (IsOnSnow(tile) != (GetTileZ(tile) > GetSnowLine())) {
 				ToggleSnow(tile);
