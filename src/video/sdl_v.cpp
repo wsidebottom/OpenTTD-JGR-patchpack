@@ -29,8 +29,8 @@
 #include "sdl_v.h"
 #include <SDL.h>
 #ifdef __ANDROID__
-#include <SDL_screenkeyboard.h>
-#include <SDL_android.h>
+	#include <SDL_screenkeyboard.h>
+	#include <SDL_android.h>
 #endif
 
 #include "../safeguards.h"
@@ -159,11 +159,11 @@ static void CheckPaletteAnim()
 static void DrawSurfaceToScreen()
 {
 	int n = _num_dirty_rects;
-#ifdef __ANDROID__
-	if (n == 0 && !_left_button_down) return; // We have to update the screen regularly to receive mouse_up event on Android
-#else
-	if (n == 0) return;
-#endif
+	#ifdef __ANDROID__
+		if (n == 0 && !_left_button_down) return; // We have to update the screen regularly to receive mouse_up event on Android
+	#else
+		if (n == 0) return;
+	#endif
 
 	_num_dirty_rects = 0;
 	if (n > MAX_DIRTY_RECTS) {
@@ -426,13 +426,13 @@ bool VideoDriver_SDL::CreateMainSurface(uint w, uint h)
 
 	GameSizeChanged();
 
-#ifdef __ANDROID__
-	if (!_multitouch_device) {
-		SDL_InitSubSystem(SDL_INIT_JOYSTICK);
-		_multitouch_device = SDL_JoystickOpen(0);
-	}
-	SDL_ANDROID_SetSystemMousePointerVisible(0); // We have our own cursor, only works on Android N
-#endif
+	#ifdef __ANDROID__
+		if (!_multitouch_device) {
+			SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+			_multitouch_device = SDL_JoystickOpen(0);
+		}
+		SDL_ANDROID_SetSystemMousePointerVisible(0); // We have our own cursor, only works on Android N
+	#endif
 
 	return true;
 }
@@ -559,9 +559,9 @@ int VideoDriver_SDL::PollEvent()
 	switch (ev.type) {
 		case SDL_MOUSEMOTION:
 			if (_cursor.UpdateCursorPosition(ev.motion.x, ev.motion.y, true)) {
-#ifndef __ANDROID__ // No mouse warping on Android, mouse strictly follows finger
+			#ifndef __ANDROID__ // No mouse warping on Android, mouse strictly follows finger
 				SDL_CALL SDL_WarpMouse(_cursor.pos.x, _cursor.pos.y);
-#endif
+			#endif
 			}
 			HandleMouseEvents();
 			break;
@@ -581,28 +581,28 @@ int VideoDriver_SDL::PollEvent()
 					_right_button_clicked = true;
 					_right_button_down_pos.x = ev.motion.x;
 					_right_button_down_pos.y = ev.motion.y;
-#ifdef __ANDROID__
-					// Right button click on Android - cancel whatever action we were doing
-					ResetObjectToPlace();
-					ToolbarSelectLastTool();
-#endif
+					#ifdef __ANDROID__
+						// Right button click on Android - cancel whatever action we were doing
+						ResetObjectToPlace();
+						ToolbarSelectLastTool();
+					#endif
 					break;
 
-#ifdef __ANDROID__
-				case SDL_BUTTON_WHEELUP:
-				case SDL_BUTTON_WHEELDOWN:
-					_cursor.wheel += (ev.button.button == SDL_BUTTON_WHEELDOWN) ? 1 : -1;
-					_right_button_down = false;
-					// Center the mouse cursor between touch points
-					SDL_GetMouseState(&_cursor.pos.x, &_cursor.pos.y);
-					_cursor.pos.x = (_cursor.pos.x + _multitouch_second_point.x) / 2;
-					_cursor.pos.y = (_cursor.pos.y + _multitouch_second_point.y) / 2;
-					//_cursor.UpdateCursorPosition(_cursor.pos.x, _cursor.pos.y, false);
-					break;
-#else
-				case SDL_BUTTON_WHEELUP:   _cursor.wheel--; break;
-				case SDL_BUTTON_WHEELDOWN: _cursor.wheel++; break;
-#endif
+				#ifdef __ANDROID__
+					case SDL_BUTTON_WHEELUP:
+					case SDL_BUTTON_WHEELDOWN:
+						_cursor.wheel += (ev.button.button == SDL_BUTTON_WHEELDOWN) ? 1 : -1;
+						_right_button_down = false;
+						// Center the mouse cursor between touch points
+						SDL_GetMouseState(&_cursor.pos.x, &_cursor.pos.y);
+						_cursor.pos.x = (_cursor.pos.x + _multitouch_second_point.x) / 2;
+						_cursor.pos.y = (_cursor.pos.y + _multitouch_second_point.y) / 2;
+						//_cursor.UpdateCursorPosition(_cursor.pos.x, _cursor.pos.y, false);
+						break;
+				#else
+					case SDL_BUTTON_WHEELUP:   _cursor.wheel--; break;
+					case SDL_BUTTON_WHEELDOWN: _cursor.wheel++; break;
+				#endif
 
 				default: break;
 			}
@@ -617,31 +617,31 @@ int VideoDriver_SDL::PollEvent()
 			} else if (ev.button.button == SDL_BUTTON_LEFT) {
 				_left_button_down = false;
 				_left_button_clicked = false;
-#ifdef __ANDROID__
-				if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_RMASK) {
-					// Two-finger click - hacky way to determine if the right mouse button is already pressed without processing the left button event
-					// Cancel whatever action we were doing, to allow two finger scrolling
-					ResetObjectToPlace();
-					ToolbarSelectLastTool();
-				}
-#endif
+				#ifdef __ANDROID__
+					if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_RMASK) {
+						// Two-finger click - hacky way to determine if the right mouse button is already pressed without processing the left button event
+						// Cancel whatever action we were doing, to allow two finger scrolling
+						ResetObjectToPlace();
+						ToolbarSelectLastTool();
+					}
+				#endif
 			} else if (ev.button.button == SDL_BUTTON_RIGHT) {
 				_right_button_down = false;
 			}
 			HandleMouseEvents();
 			break;
-#ifndef __ANDROID__
-		case SDL_ACTIVEEVENT:
-			if (!(ev.active.state & SDL_APPMOUSEFOCUS)) break;
+		#ifndef __ANDROID__
+			case SDL_ACTIVEEVENT:
+				if (!(ev.active.state & SDL_APPMOUSEFOCUS)) break;
 
-			if (ev.active.gain) { // mouse entered the window, enable cursor
-				_cursor.in_window = true;
-			} else {
-				UndrawMouseCursor(); // mouse left the window, undraw cursor
-				_cursor.in_window = false;
-			}
-			break;
-#endif /* not __ANDROID__ */
+				if (ev.active.gain) { // mouse entered the window, enable cursor
+					_cursor.in_window = true;
+				} else {
+					UndrawMouseCursor(); // mouse left the window, undraw cursor
+					_cursor.in_window = false;
+				}
+				break;
+		#endif /* not __ANDROID__ */
 		case SDL_QUIT:
 			HandleExitGameRequest();
 			break;
@@ -654,42 +654,34 @@ int VideoDriver_SDL::PollEvent()
 				WChar character;
 				uint keycode = ConvertSdlKeyIntoMy(&ev.key.keysym, &character);
 				HandleKeypress(keycode, character);
-#ifdef __ANDROID__
-				if (ev.key.keysym.sym == SDLK_LCTRL || ev.key.keysym.sym == SDLK_RCTRL) {
-					_ctrl_pressed = true;
-				}
-				if (ev.key.keysym.sym == SDLK_LSHIFT || ev.key.keysym.sym == SDLK_RSHIFT) {
-					_shift_pressed = true;
-				}
-#endif
+				#ifdef __ANDROID__
+					if (ev.key.keysym.sym == SDLK_LCTRL || ev.key.keysym.sym == SDLK_RCTRL) _ctrl_pressed = true;
+					if (ev.key.keysym.sym == SDLK_LSHIFT || ev.key.keysym.sym == SDLK_RSHIFT) _shift_pressed = true;
+				#endif
 			}
 			break;
 		case SDL_KEYUP:
-#ifdef __ANDROID__
-			if (ev.key.keysym.sym == SDLK_LCTRL || ev.key.keysym.sym == SDLK_RCTRL) {
-				_ctrl_pressed = false;
-			}
-			if (ev.key.keysym.sym == SDLK_LSHIFT || ev.key.keysym.sym == SDLK_RSHIFT) {
-				_shift_pressed = false;
-			}
-#endif
+			#ifdef __ANDROID__
+				if (ev.key.keysym.sym == SDLK_LCTRL || ev.key.keysym.sym == SDLK_RCTRL) _ctrl_pressed = false;
+				if (ev.key.keysym.sym == SDLK_LSHIFT || ev.key.keysym.sym == SDLK_RSHIFT) _shift_pressed = false;
+			#endif
 			break;
-#ifdef __ANDROID__
-		case SDL_JOYBALLMOTION:
-			if (ev.jball.which == 0 && ev.jball.ball == 1) {
-				_multitouch_second_point.x = ev.jball.xrel;
-				_multitouch_second_point.y = ev.jball.yrel;
+		#ifdef __ANDROID__
+			case SDL_JOYBALLMOTION:
+				if (ev.jball.which == 0 && ev.jball.ball == 1) {
+					_multitouch_second_point.x = ev.jball.xrel;
+					_multitouch_second_point.y = ev.jball.yrel;
+				}
+				break;
+		#endif /* not __ANDROID__ */
+		#ifndef __ANDROID__
+			case SDL_VIDEORESIZE: {
+				int w = max(ev.resize.w, 64);
+				int h = max(ev.resize.h, 64);
+				CreateMainSurface(w, h);
+				break;
 			}
-			break;
-#endif /* not __ANDROID__ */
-#ifndef __ANDROID__
-		case SDL_VIDEORESIZE: {
-			int w = max(ev.resize.w, 64);
-			int h = max(ev.resize.h, 64);
-			CreateMainSurface(w, h);
-			break;
-		}
-#endif /* not __ANDROID__ */
+		#endif /* not __ANDROID__ */
 		case SDL_VIDEOEXPOSE: {
 			/* Force a redraw of the entire screen. Note
 			 * that SDL 1.2 seems to do this automatically
@@ -721,9 +713,9 @@ const char *VideoDriver_SDL::Start(const char * const *parm)
 	SetupKeyboard();
 
 	_draw_threaded = GetDriverParam(parm, "no_threads") == NULL && GetDriverParam(parm, "no_thread") == NULL;
-#ifdef __ANDROID__
-	_draw_threaded = false;
-#endif
+	#ifdef __ANDROID__
+		_draw_threaded = false;
+	#endif
 
 	return NULL;
 }
@@ -814,24 +806,24 @@ void VideoDriver_SDL::MainLoop()
 
 			bool old_ctrl_pressed = _ctrl_pressed;
 
-#ifndef __ANDROID__
-			_ctrl_pressed  = !!(mod & KMOD_CTRL);
-			_shift_pressed = !!(mod & KMOD_SHIFT);
-#endif
+			#ifndef __ANDROID__
+				_ctrl_pressed  = !!(mod & KMOD_CTRL);
+				_shift_pressed = !!(mod & KMOD_SHIFT);
+			#endif
 
 			/* determine which directional keys are down */
 			_dirkeys =
-#if SDL_VERSION_ATLEAST(1, 3, 0)
+			#if SDL_VERSION_ATLEAST(1, 3, 0)
 				(keys[SDL_SCANCODE_LEFT]  ? 1 : 0) |
 				(keys[SDL_SCANCODE_UP]    ? 2 : 0) |
 				(keys[SDL_SCANCODE_RIGHT] ? 4 : 0) |
 				(keys[SDL_SCANCODE_DOWN]  ? 8 : 0);
-#else
+			#else
 				(keys[SDLK_LEFT]  ? 1 : 0) |
 				(keys[SDLK_UP]    ? 2 : 0) |
 				(keys[SDLK_RIGHT] ? 4 : 0) |
 				(keys[SDLK_DOWN]  ? 8 : 0);
-#endif
+			#endif
 			if (old_ctrl_pressed != _ctrl_pressed) HandleCtrlChanged();
 
 			/* The gameloop is the part that can run asynchronously. The rest

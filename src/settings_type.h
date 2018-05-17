@@ -81,8 +81,10 @@ struct GUISettings {
 	bool   compact_vertical_toolbar;         ///< compact mode for vertical toolbars, with more sub-menus
 	bool   build_confirmation;               ///< show confirmation dialog when building roads and stations
 	bool   hide_windows;	                 ///< hide windows when building roads and stations
-	bool   windows_titlebars;                ///< show or hide titlebars for all windows to increase scrren space
-	bool   windows_decorations;              ///< draw ornament on all window edges
+	#ifdef __ANDROID__
+		bool   windows_titlebars;            ///< show or hide titlebars for all windows to increase scrren space
+		bool   windows_decorations;          ///< draw ornament on all window edges
+	#endif
 	uint   min_button;                       ///< min size of most button widgets
 	uint   min_step;                         ///< min size of scrollbar/dropdown elements
 	bool   show_finances;                    ///< show finances at end of year

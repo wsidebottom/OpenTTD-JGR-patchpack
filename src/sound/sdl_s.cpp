@@ -24,7 +24,7 @@
 static FSoundDriver_SDL iFSoundDriver_SDL;
 
 #ifdef __ANDROID__
-extern void Android_MidiMixMusic(Sint16 *stream, int len);
+	extern void Android_MidiMixMusic(Sint16 *stream, int len);
 #endif
 
 /**
@@ -36,9 +36,9 @@ extern void Android_MidiMixMusic(Sint16 *stream, int len);
 static void CDECL fill_sound_buffer(void *userdata, Uint8 *stream, int len)
 {
 	MxMixSamples(stream, len / 4);
-#if defined(__ANDROID__) && defined(LIBTIMIDITY)
-	Android_MidiMixMusic((Sint16 *)stream, len / 2);
-#endif
+	#if defined(__ANDROID__) && defined(LIBTIMIDITY)
+		Android_MidiMixMusic((Sint16 *)stream, len / 2);
+	#endif
 }
 
 const char *SoundDriver_SDL::Start(const char * const *parm)

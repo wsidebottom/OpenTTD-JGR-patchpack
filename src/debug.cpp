@@ -17,7 +17,7 @@
 #include "fileio_func.h"
 #include "settings_type.h"
 #ifdef __ANDROID__
-#include <android/log.h>
+	#include <android/log.h>
 #endif
 
 #include <time.h>
@@ -122,52 +122,52 @@ char *DumpDebugFacilityNames(char *buf, char *last)
  */
 static void debug_print(const char *dbg, const char *buf)
 {
-#ifdef __ANDROID__
-	__android_log_print(ANDROID_LOG_INFO, "OpenTTD", "[%s] %s", dbg, buf);
-#endif
-#if defined(ENABLE_NETWORK)
-	if (_debug_socket != INVALID_SOCKET) {
-		char buf2[1024 + 32];
+	#ifdef __ANDROID__
+		__android_log_print(ANDROID_LOG_INFO, "OpenTTD", "[%s] %s", dbg, buf);
+	#endif
+	#if defined(ENABLE_NETWORK)
+		if (_debug_socket != INVALID_SOCKET) {
+			char buf2[1024 + 32];
 
-		seprintf(buf2, lastof(buf2), "%sdbg: [%s] %s\n", GetLogPrefix(), dbg, buf);
-		/* Sending out an error when this fails would be nice, however... the error
-		 * would have to be send over this failing socket which won't work. */
-		send(_debug_socket, buf2, (int)strlen(buf2), 0);
-		return;
-	}
-#endif /* ENABLE_NETWORK */
+			seprintf(buf2, lastof(buf2), "%sdbg: [%s] %s\n", GetLogPrefix(), dbg, buf);
+			/* Sending out an error when this fails would be nice, however... the error
+			 * would have to be send over this failing socket which won't work. */
+			send(_debug_socket, buf2, (int)strlen(buf2), 0);
+			return;
+		}
+	#endif /* ENABLE_NETWORK */
 	if (strcmp(dbg, "desync") == 0) {
 		static FILE *f = FioFOpenFile("commands-out.log", "wb", AUTOSAVE_DIR);
 		if (f != NULL) {
 			fprintf(f, "%s%s\n", GetLogPrefix(), buf);
 			fflush(f);
 		}
-#ifdef RANDOM_DEBUG
-	} else if (strcmp(dbg, "random") == 0) {
-#if defined(UNIX) && defined(__GLIBC__)
-		static bool have_inited = false;
-		static FILE *f = NULL;
+	#ifdef RANDOM_DEBUG
+		} else if (strcmp(dbg, "random") == 0) {
+	#if defined(UNIX) && defined(__GLIBC__)
+			static bool have_inited = false;
+			static FILE *f = NULL;
 
-		if (!have_inited) {
-			have_inited = true;
-			unsigned int num = 0;
-			int pid = getpid();
-			const char *fn = NULL;
-			for(;;) {
-				free(fn);
-				fn = str_fmt("random-out-%d-%u.log", pid, num);
-				f = FioFOpenFile(fn, "wx", AUTOSAVE_DIR);
-				if (f == NULL && errno == EEXIST) {
-					num++;
-					continue;
+			if (!have_inited) {
+				have_inited = true;
+				unsigned int num = 0;
+				int pid = getpid();
+				const char *fn = NULL;
+				for(;;) {
+					free(fn);
+					fn = str_fmt("random-out-%d-%u.log", pid, num);
+					f = FioFOpenFile(fn, "wx", AUTOSAVE_DIR);
+					if (f == NULL && errno == EEXIST) {
+						num++;
+						continue;
+					}
+					break;
 				}
-				break;
+				free(fn);
 			}
-			free(fn);
-		}
-#else
-		static FILE *f = FioFOpenFile("random-out.log", "wb", AUTOSAVE_DIR);
-#endif
+	#else
+			static FILE *f = FioFOpenFile("random-out.log", "wb", AUTOSAVE_DIR);
+	#endif
 		if (f != NULL) {
 			fprintf(f, "%s\n", buf);
 			return;

@@ -1,11 +1,11 @@
 /* $Id$ */
 
 /*
- * This file is part of OpenTTD.
- * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
- * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <http://www.gnu.org/licenses/>.
- */
+* This file is part of OpenTTD.
+* OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
+* OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+* See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <http://www.gnu.org/licenses/>.
+*/
 
 /** @file build_confirmation_gui.cpp Transparent confirmation dialog for building anything on the map. */
 
@@ -78,11 +78,11 @@ struct BuildInfoWindow : public Window
 
 	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
 	{
-		size->width  = GetStringBoundingBox(STR_STATION_BUILD_COVERAGE_AREA_TITLE).width * 2.5;
+		size->width = GetStringBoundingBox(STR_STATION_BUILD_COVERAGE_AREA_TITLE).width * 2.5;
 		size->height = GetStringHeight(STR_STATION_BUILD_COVERAGE_AREA_TITLE, size->width) * (this->station ? 3 : 1);
 
 		/* Increase slightly to have some space around the box. */
-		size->width  += 2 + WD_FRAMERECT_LEFT + WD_FRAMERECT_RIGHT;
+		size->width += 2 + WD_FRAMERECT_LEFT + WD_FRAMERECT_RIGHT;
 		size->height += 2 + WD_FRAMERECT_TOP + WD_FRAMERECT_BOTTOM;
 	}
 
@@ -148,9 +148,9 @@ struct BuildConfirmationWindow : Window {
 		BuildConfirmationWindow::shown = true;
 		BuildConfirmationWindow::estimating_cost = true;
 		ConfirmationWindowSetEstimatedCost(0); // Clear old value, just in case
-		// This is a hack - we invoke the build command with estimating_cost flag, which is equal to (_shift_pressed || _shift_toolbar_pressed),
-		// then we select last build tool, restore viewport selection, and hide all windows, which pop up when command is invoked,
-		// and all that just to get cost estimate value.
+											   // This is a hack - we invoke the build command with estimating_cost flag, which is equal to _shift_pressed,
+											   // then we select last build tool, restore viewport selection, and hide all windows, which pop up when command is invoked,
+											   // and all that just to get cost estimate value.
 		ConfirmPlacingObject();
 		ToolbarSelectLastTool();
 		_thd.selstart = selstart;
@@ -167,20 +167,21 @@ struct BuildConfirmationWindow : Window {
 	void OnClick(Point pt, int widget, int click_count)
 	{
 		switch (widget) {
-			case WID_BC_OK:
-				if (pt.y <= (int)GetWidget<NWidgetViewport>(WID_BC_OK)->current_y / 2) {
-					_thd.selstart = selstart;
-					_thd.selend = selend;
-					ConfirmPlacingObject();
-					ToolbarSelectLastTool();
-				} else {
-					ResetObjectToPlace();
-					DeleteWindowByClass(WC_BUILD_BRIDGE);
-					//ClearErrorMessages();
-					Window *w = FindWindowById(WC_ERRMSG, 0);
-					if (w != NULL) delete w;
-				}
-				break;
+		case WID_BC_OK:
+			if (pt.y <= (int)GetWidget<NWidgetViewport>(WID_BC_OK)->current_y / 2) {
+				_thd.selstart = selstart;
+				_thd.selend = selend;
+				ConfirmPlacingObject();
+				ToolbarSelectLastTool();
+			}
+			else {
+				ResetObjectToPlace();
+				DeleteWindowByClass(WC_BUILD_BRIDGE);
+				//ClearErrorMessages();
+				Window *w = FindWindowById(WC_ERRMSG, 0);
+				if (w != NULL) delete w;
+			}
+			break;
 		}
 		HideBuildConfirmationWindow(); // this == NULL after this call
 	}
@@ -188,10 +189,10 @@ struct BuildConfirmationWindow : Window {
 	virtual void UpdateWidgetSize(int widget, Dimension *size, const Dimension &padding, Dimension *fill, Dimension *resize)
 	{
 		switch (widget) {
-			case WID_BC_OK:
-				size->width = GetMinSizing(NWST_BUTTON) * 2;
-				size->height = GetMinSizing(NWST_BUTTON) * 3;
-				break;
+		case WID_BC_OK:
+			size->width = ScaleGUITrad(64) + 2;
+			size->height = ScaleGUITrad(48) + 2;
+			break;
 		}
 	}
 
@@ -208,10 +209,10 @@ struct BuildConfirmationWindow : Window {
 		DrawFrameRect(x, y, x + w, y + h, COLOUR_GREY, FR_BORDERONLY);
 		Dimension d = GetStringBoundingBox(str);
 		DrawFrameRect(x + w / 2 - d.width / 2 - 1,
-						Center(y, h) - 2,
-						x + w / 2 + d.width / 2 + 1,
-						Center(y, h) + d.height,
-						COLOUR_GREY, FR_NONE);
+			Center(y, h) - 2,
+			x + w / 2 + d.width / 2 + 1,
+			Center(y, h) + d.height,
+			COLOUR_GREY, FR_NONE);
 		DrawString(x, x + w, Center(y, h), str, TC_FROMSTRING, SA_HOR_CENTER);
 	}
 };
@@ -221,7 +222,7 @@ bool BuildConfirmationWindow::estimating_cost = false;
 
 static const NWidgetPart _nested_build_confirmation_widgets[] = {
 	NWidget(WWT_PANEL, COLOUR_GREY, WID_BC_PANEL),
-		NWidget(NWID_VIEWPORT, INVALID_COLOUR, WID_BC_OK), SetSizingType(NWST_VIEWPORT), SetResize(1, 1), SetFill(1, 1), //SetPadding(2, 2, 2, 2),
+	NWidget(NWID_VIEWPORT, INVALID_COLOUR, WID_BC_OK), SetMinimalSize(100, 80), SetFill(1, 1), SetResize(1, 1), SetPadding(2, 2, 2, 2),
 	EndContainer(),
 };
 
@@ -233,7 +234,7 @@ static WindowDesc _build_confirmation_desc(
 );
 
 /**
- * Show build confirmation window under the mouse cursor
+* Show build confirmation window under the mouse cursor
 */
 void ShowBuildConfirmationWindow()
 {
@@ -241,7 +242,7 @@ void ShowBuildConfirmationWindow()
 
 	HideBuildConfirmationWindow();
 
-	if (!_settings_client.gui.build_confirmation || (_shift_pressed || _shift_toolbar_pressed)) {
+	if (!_settings_client.gui.build_confirmation || _shift_pressed || (_thd.place_mode & HT_POLY)) {
 		ConfirmPlacingObject();
 		return;
 	}
@@ -261,7 +262,7 @@ void ShowBuildConfirmationWindow()
 }
 
 /**
- * Destroy build confirmation window, this does not cancel current action
+* Destroy build confirmation window, this does not cancel current action
 */
 void HideBuildConfirmationWindow()
 {
@@ -281,14 +282,13 @@ bool ConfirmationWindowShown()
 bool BuildConfirmationWindowProcessViewportClick()
 {
 	if (!BuildConfirmationWindow::shown) return false;
+
 	Window *w = FindWindowById(WC_BUILD_CONFIRMATION, 0);
 	if (w != NULL && IsInsideBS(_cursor.pos.x, w->left, w->width) && IsInsideBS(_cursor.pos.y, w->top, w->height)) {
-		if (_settings_client.gui.windows_titlebars || !_left_button_down) {
-			Point pt;
-			pt.x = _cursor.pos.x - w->left;
-			pt.y = _cursor.pos.y - w->top;
-			w->OnClick(pt, WID_BC_OK, 1);
-		}
+		Point pt;
+		pt.x = _cursor.pos.x - w->left;
+		pt.y = _cursor.pos.y - w->top;
+		w->OnClick(pt, WID_BC_OK, 1);
 		return true;
 	}
 

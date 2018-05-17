@@ -31,7 +31,7 @@
 #include "safeguards.h"
 
 #ifdef __ANDROID__
-#include <SDL_screenkeyboard.h>
+	#include <SDL_screenkeyboard.h>
 #endif
 
 static const uint ICON_HISTORY_SIZE       = 20;
@@ -445,24 +445,24 @@ void IConsoleSwitch()
 {
 	switch (_iconsole_mode) {
 		case ICONSOLE_CLOSED:
-#ifdef __ANDROID__
-			{
-				char buf[1024] = "";
-				for (const IConsoleLine *print = IConsoleLine::Get(0); print != NULL; print = print->previous) {
-					if (print->buffer && print->buffer[0]) {
-						strecat(buf, print->buffer, lastof(buf));
-						strecat(buf, "\n", lastof(buf));
+			#ifdef __ANDROID__
+				{
+					char buf[1024] = "";
+					for (const IConsoleLine *print = IConsoleLine::Get(0); print != NULL; print = print->previous) {
+						if (print->buffer && print->buffer[0]) {
+							strecat(buf, print->buffer, lastof(buf));
+							strecat(buf, "\n", lastof(buf));
+						}
 					}
+					strecat(buf, "\n\n\n\n\n\n\n\n", lastof(buf)); // Move all text to top
+					SDL_ANDROID_SetScreenKeyboardHintMesage(buf);
+					char text[512] = "";
+					SDL_ANDROID_GetScreenKeyboardTextInput(text, sizeof(text) - 1); /* Invoke Android built-in screen keyboard */
+					IConsoleCmdExec(text);
 				}
-				strecat(buf, "\n\n\n\n\n\n\n\n", lastof(buf)); // Move all text to top
-				SDL_ANDROID_SetScreenKeyboardHintMesage(buf);
-				char text[512] = "";
-				SDL_ANDROID_GetScreenKeyboardTextInput(text, sizeof(text) - 1); /* Invoke Android built-in screen keyboard */
-				IConsoleCmdExec(text);
-			}
-#else
-		new IConsoleWindow();
-#endif
+			#else
+				new IConsoleWindow();
+			#endif
 			break;
 		case ICONSOLE_OPENED: case ICONSOLE_FULL:
 			DeleteWindowById(WC_CONSOLE, 0);

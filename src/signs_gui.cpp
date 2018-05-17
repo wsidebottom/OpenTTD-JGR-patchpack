@@ -275,7 +275,9 @@ struct SignListWindow : Window, SignList {
 			}
 
 			case WID_SIL_CAPTION:
-				if (!_settings_client.gui.windows_titlebars) break;
+				#ifdef __ANDROID__
+					if (!_settings_client.gui.windows_titlebars) break;
+				#endif
 				SetDParamMaxValue(0, Sign::GetPoolSize(), 3);
 				*size = GetStringBoundingBox(STR_SIGN_LIST_CAPTION);
 				size->height += padding.height;

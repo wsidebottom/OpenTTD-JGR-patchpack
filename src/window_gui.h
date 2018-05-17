@@ -916,6 +916,7 @@ void SetFocusedWindow(Window *w);
 
 void ScrollbarClickHandler(Window *w, NWidgetCore *nw, int x, int y);
 
-bool GetWindowDraggedOffScreen(const Window *w); ///< Return whether window is dragged off screen edge and about to close, for no-titlebars mode
-
+#ifdef __ANDROID__
+	bool GetWindowDraggedOffScreen(const Window *w); ///< Return whether window is dragged off screen edge and about to close, for no-titlebars mode
+#endif
 #endif /* WINDOW_GUI_H */

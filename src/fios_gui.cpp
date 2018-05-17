@@ -43,8 +43,9 @@ LoadCheckData _load_check_data;    ///< Data loaded from save during SL_LOAD_CHE
 
 static bool _fios_path_changed;
 static bool _savegame_sort_dirty;
-static const char *NETWORK_SAVE_FILENAME = "network-save.sav";
-
+#ifdef __ANDROID__
+	static const char *NETWORK_SAVE_FILENAME = "network-save.sav";
+#endif
 
 /**
  * Reset read data.

@@ -15,7 +15,7 @@
 #include "stdafx.h"
 
 #ifdef __ANDROID__
-#include <SDL_android.h>
+	#include <SDL_android.h>
 #endif
 
 #include "tutorial_gui.h"
@@ -89,15 +89,15 @@ void OpenExternTutorialVideo(VideoLink_t *tutorial)
 	if (!link) {
 		return;
 	}
-#ifdef __ANDROID__
-	SDL_ANDROID_OpenExternalWebBrowser(link);
-#else
-	char cmd[PATH_MAX] =
-#ifdef WIN32
+	#ifdef __ANDROID__
+		SDL_ANDROID_OpenExternalWebBrowser(link);
+	#else
+		char cmd[PATH_MAX] =
+	#ifdef WIN32
 		"start ";
-#else
+	#else
 		"xdg-open ";
-#endif
+	#endif
 	strcat(cmd, link);
 	system(cmd);
 #endif

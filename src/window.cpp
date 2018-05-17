@@ -304,11 +304,8 @@ void Window::OnDropdownClose(Point pt, int widget, int index, bool instant_close
 
 	/* Raise the dropdown button */
 	NWidgetCore *nwi2 = this->GetWidget<NWidgetCore>(widget);
-	if ((nwi2->type & WWT_MASK) == NWID_BUTTON_DROPDOWN) {
-		nwi2->disp_flags &= ~ND_DROPDOWN_ACTIVE;
-	} else {
-		this->RaiseWidget(widget);
-	}
+	if ((nwi2->type & WWT_MASK) == NWID_BUTTON_DROPDOWN) nwi2->disp_flags &= ~ND_DROPDOWN_ACTIVE;
+	else this->RaiseWidget(widget);
 	this->SetWidgetDirty(widget);
 }
 
@@ -682,7 +679,11 @@ static void DispatchLeftClickEvent(Window *w, int x, int y, int click_count, boo
 
 	Point pt = { x, y };
 
-	if (!_settings_client.gui.windows_titlebars && mouse_down) {
+	if (mouse_down
+		#ifdef __ANDROID__
+			&& !_settings_client.gui.windows_titlebars
+		#endif
+		) {
 		// TODO: this should be handled inside window or widget methods, not here
 		if (widget_type == NWID_VSCROLLBAR || widget_type == NWID_HSCROLLBAR) {
 			ScrollbarClickHandler(w, nw, x, y);
@@ -809,7 +810,11 @@ static void DispatchLeftButtonDownEvent(Window *w, int x, int y, int click_count
 static void DispatchLeftButtonUpEvent(Window *w, int x, int y)
 {
 	_dragging_widget = false;
-	if (_settings_client.gui.windows_titlebars || _dragging_window) return;
+	if (_dragging_window
+	#ifdef __ANDROID__
+			|| _settings_client.gui.windows_titlebars
+	#endif
+		) return;
 	DispatchLeftClickEvent(w, x, y, _left_button_click_count, false);
 }
 
@@ -2097,26 +2102,28 @@ static void HandlePlacePresize()
 	w->OnPlacePresize(pt, TileVirtXY(pt.x, pt.y));
 }
 
-/**
- * Handle dragging mouse while left button is pressed in no-titlebars mode.
- */
-static void HandleMouseDragNoTitlebars()
-{
-	if (_settings_client.gui.windows_titlebars || _dragging_window ||
-		!_left_button_down || _focused_window == NULL || _dragging_widget) return;
-	unsigned distance = abs(_cursor.pos.x - _left_button_down_pos.x) + abs(_cursor.pos.y - _left_button_down_pos.y);
-	if (distance * 2 > GetMinSizing(NWST_STEP) &&
-		_focused_window->window_class != WC_SELECT_GAME &&
-		_focused_window->window_class != WC_STATUS_BAR &&
-		_focused_window->window_class != WC_MAIN_TOOLBAR &&
-		_focused_window->window_class != WC_MAIN_TOOLBAR_RIGHT &&
-		_focused_window->window_class != WC_BUILD_CONFIRMATION) {
-		//SendLeftClickEventToWindow(_focused_window, _left_button_down_pos.x, _left_button_down_pos.y, 1);
-		StartWindowDrag(_focused_window);
-		_drag_delta.x += _cursor.pos.x - _left_button_down_pos.x;
-		_drag_delta.y += _cursor.pos.y - _left_button_down_pos.y;
+#ifdef __ANDROID__
+	/**
+	 * Handle dragging mouse while left button is pressed in no-titlebars mode.
+	 */
+	static void HandleMouseDragNoTitlebars()
+	{
+		if (_settings_client.gui.windows_titlebars || _dragging_window ||
+			!_left_button_down || _focused_window == NULL || _dragging_widget) return;
+		unsigned distance = abs(_cursor.pos.x - _left_button_down_pos.x) + abs(_cursor.pos.y - _left_button_down_pos.y);
+		if (distance * 2 > GetMinSizing(NWST_STEP) &&
+			_focused_window->window_class != WC_SELECT_GAME &&
+			_focused_window->window_class != WC_STATUS_BAR &&
+			_focused_window->window_class != WC_MAIN_TOOLBAR &&
+			_focused_window->window_class != WC_MAIN_TOOLBAR_RIGHT &&
+			_focused_window->window_class != WC_BUILD_CONFIRMATION) {
+			//SendLeftClickEventToWindow(_focused_window, _left_button_down_pos.x, _left_button_down_pos.y, 1);
+			StartWindowDrag(_focused_window);
+			_drag_delta.x += _cursor.pos.x - _left_button_down_pos.x;
+			_drag_delta.y += _cursor.pos.y - _left_button_down_pos.y;
+		}
 	}
-}
+#endif
 
 /**
  * Handle dragging and dropping in mouse dragging mode (#WSM_DRAGDROP).
@@ -2126,14 +2133,16 @@ static EventState HandleMouseDragDrop()
 {
 	if (_special_mouse_mode != WSM_DRAGDROP) return ES_NOT_HANDLED;
 
-	bool button = _left_button_down;
-	static bool button_second_click = false;
-	if (!_settings_client.gui.windows_titlebars) {
-		if (_left_button_down) button_second_click = true;
-		button = _left_button_down || !button_second_click;
-	}
-
-	if (button && _cursor.delta.x == 0 && _cursor.delta.y == 0) return ES_HANDLED; // Dragging, but the mouse did not move.
+	#ifdef __ANDROID__
+		bool button = _left_button_down;
+		static bool button_second_click = false;
+		if (!_settings_client.gui.windows_titlebars) {
+			if (_left_button_down) button_second_click = true;
+			button = _left_button_down || !button_second_click;
+		}
+	#endif
+	
+	if (_left_button_down && _cursor.delta.x == 0 && _cursor.delta.y == 0) return ES_HANDLED; // Dragging, but the mouse did not move.
 
 	Window *w = _thd.GetCallbackWnd();
 	if (w != NULL) {
@@ -2141,18 +2150,11 @@ static EventState HandleMouseDragDrop()
 		Point pt;
 		pt.x = _cursor.pos.x - w->left;
 		pt.y = _cursor.pos.y - w->top;
-		if (button) {
-			w->OnMouseDrag(pt, GetWidgetFromPos(w, pt.x, pt.y));
-		} else {
-			w->OnDragDrop(pt, GetWidgetFromPos(w, pt.x, pt.y));
-		}
+		if (_left_button_down) w->OnMouseDrag(pt, GetWidgetFromPos(w, pt.x, pt.y));
+		else w->OnDragDrop(pt, GetWidgetFromPos(w, pt.x, pt.y));
 	}
 
-	if (!button) {
-		ResetObjectToPlace(); // Button released, finished dragging.
-		button_second_click = false;
-	}
-
+	if (!_left_button_down) ResetObjectToPlace(); // Button released, finished dragging.
 	return ES_HANDLED;
 }
 
@@ -2241,7 +2243,11 @@ static void EnsureVisibleCaption(Window *w, int nx, int ny)
 	/* Search for the title bar rectangle. */
 	Rect caption_rect;
 	const NWidgetBase *caption = w->nested_root->GetWidgetOfType(WWT_CAPTION);
-	if (caption != NULL && _settings_client.gui.windows_titlebars) {
+	if (caption != NULL
+		#ifdef __ANDROID__
+			&& _settings_client.gui.windows_titlebars
+		#endif
+		) {
 		caption_rect.left   = caption->pos_x;
 		caption_rect.right  = caption->pos_x + caption->current_x;
 		caption_rect.top    = caption->pos_y;
@@ -2257,7 +2263,7 @@ static void EnsureVisibleCaption(Window *w, int nx, int ny)
 		}
 		PreventHiding(&nx, &ny, caption_rect, FindWindowById(WC_STATUS_BAR,   0), w->left, PHD_UP);
 	}
-
+	
 	if (w->viewport != NULL) {
 		w->viewport->left += nx - w->left;
 		w->viewport->top  += ny - w->top;
@@ -2331,31 +2337,34 @@ int GetMainViewBottom()
 	return (w == NULL) ? _screen.height : w->top;
 }
 
-bool GetWindowDraggedOffScreen(const Window *w)
-{
-	if (_settings_client.gui.windows_titlebars) return false;
-	Rect edge = { 0, GetMainViewTop(), _screen.width, _screen.height };
-	if (_settings_client.gui.vertical_toolbar && _game_mode != GM_EDITOR && _game_mode != GM_MENU) {
-		edge.left += GetMinSizing(NWST_BUTTON);
-		edge.right -= GetMinSizing(NWST_BUTTON);
+#ifdef __ANDROID__
+	bool GetWindowDraggedOffScreen(const Window *w)
+	{
+		if (_settings_client.gui.windows_titlebars) return false;
+
+		Rect edge = { 0, GetMainViewTop(), _screen.width, _screen.height };
+		if (_settings_client.gui.vertical_toolbar && _game_mode != GM_EDITOR && _game_mode != GM_MENU) {
+			edge.left += GetMinSizing(NWST_BUTTON);
+			edge.right -= GetMinSizing(NWST_BUTTON);
+		}
+		Rect visible = { edge.left + (int)GetMinSizing(NWST_BUTTON) * 4, edge.top + (int)GetMinSizing(NWST_BUTTON) * 2,
+							edge.right - (int)GetMinSizing(NWST_BUTTON) * 4, edge.bottom - (int)GetMinSizing(NWST_BUTTON) * 2 };
+		// 1/4 of the window must be hidden to close it when flicking it off to the left/right
+		if (w->width >= (int)GetMinSizing(NWST_BUTTON) * 4) {
+			edge.left -= GetMinSizing(NWST_BUTTON) * 2;
+			edge.right += GetMinSizing(NWST_BUTTON) * 2;
+		}
+		if (w->height >= (int)GetMinSizing(NWST_BUTTON) * 4) {
+			edge.top -= GetMinSizing(NWST_BUTTON);
+			edge.bottom += GetMinSizing(NWST_BUTTON);
+		}
+		if (w->left < edge.left && w->left + w->width < visible.right) return true;
+		if (w->left + w->width > edge.right && w->left > visible.left) return true;
+		if (w->top < edge.top && w->top + w->height < visible.bottom) return true;
+		if (w->top + w->height > edge.bottom && w->top > visible.top) return true;
+		return false;
 	}
-	Rect visible = { edge.left + (int)GetMinSizing(NWST_BUTTON) * 4, edge.top + (int)GetMinSizing(NWST_BUTTON) * 2,
-						edge.right - (int)GetMinSizing(NWST_BUTTON) * 4, edge.bottom - (int)GetMinSizing(NWST_BUTTON) * 2 };
-	// 1/4 of the window must be hidden to close it when flicking it off to the left/right
-	if (w->width >= (int)GetMinSizing(NWST_BUTTON) * 4) {
-		edge.left -= GetMinSizing(NWST_BUTTON) * 2;
-		edge.right += GetMinSizing(NWST_BUTTON) * 2;
-	}
-	if (w->height >= (int)GetMinSizing(NWST_BUTTON) * 4) {
-		edge.top -= GetMinSizing(NWST_BUTTON);
-		edge.bottom += GetMinSizing(NWST_BUTTON);
-	}
-	if (w->left < edge.left && w->left + w->width < visible.right) return true;
-	if (w->left + w->width > edge.right && w->left > visible.left) return true;
-	if (w->top < edge.top && w->top + w->height < visible.bottom) return true;
-	if (w->top + w->height > edge.bottom && w->top > visible.top) return true;
-	return false;
-}
+#endif
 
 /**
  * Handle dragging/resizing of a window.
@@ -2376,9 +2385,9 @@ static EventState HandleWindowDragging()
 			/* Stop the dragging if the left mouse button was released */
 			if (!_left_button_down) {
 				w->flags &= ~WF_DRAGGING;
-				if (GetWindowDraggedOffScreen(w)) {
-					delete w;
-				}
+				#ifdef __ANDROID__
+					if (GetWindowDraggedOffScreen(w)) delete w;
+				#endif
 				break;
 			}
 
@@ -2468,12 +2477,11 @@ static EventState HandleWindowDragging()
 			EnsureVisibleCaption(w, nx, ny);
 
 			w->SetDirty();
-			if (GetWindowDraggedOffScreen(w)) {
-				GuiShowTooltips(w, STR_TOOLTIP_CLOSE_WINDOW, 0, NULL, TCC_LEFT_CLICK);
-			} else {
+			#ifdef __ANDROID__
+				if (GetWindowDraggedOffScreen(w)) GuiShowTooltips(w, STR_TOOLTIP_CLOSE_WINDOW, 0, NULL, TCC_LEFT_CLICK);
+				else 
+			#endif
 				GuiShowTooltips(w, STR_NULL, 0, NULL, TCC_LEFT_CLICK); // Hide tooltip
-			}
-
 			return ES_HANDLED;
 		} else if (w->flags & WF_SIZING) {
 			/* Stop the sizing if the left mouse button was released */
@@ -2487,20 +2495,15 @@ static EventState HandleWindowDragging()
 			 * If resizing the left edge of the window, moving to the left makes the window bigger not smaller.
 			 */
 			int x, y = _cursor.pos.y - _drag_delta.y;
-			if (w->flags & WF_SIZING_LEFT) {
-				x = _drag_delta.x - _cursor.pos.x;
-			} else {
-				x = _cursor.pos.x - _drag_delta.x;
-			}
+			if (w->flags & WF_SIZING_LEFT) x = _drag_delta.x - _cursor.pos.x;
+			else x = _cursor.pos.x - _drag_delta.x;
 
 			/* resize.step_width and/or resize.step_height may be 0, which means no resize is possible. */
 			if (w->resize.step_width  == 0) x = 0;
 			if (w->resize.step_height == 0) y = 0;
 
 			/* Check the resize button won't go past the bottom of the screen */
-			if (w->top + w->height + y > _screen.height) {
-				y = _screen.height - w->height - w->top;
-			}
+			if (w->top + w->height + y > _screen.height) y = _screen.height - w->height - w->top;
 
 			/* X and Y has to go by step.. calculate it.
 			 * The cast to int is necessary else x/y are implicitly casted to
@@ -2509,12 +2512,8 @@ static EventState HandleWindowDragging()
 			if (w->resize.step_height > 1) y -= y % (int)w->resize.step_height;
 
 			/* Check that we don't go below the minimum set size */
-			if ((int)w->width + x < (int)w->nested_root->smallest_x) {
-				x = w->nested_root->smallest_x - w->width;
-			}
-			if ((int)w->height + y < (int)w->nested_root->smallest_y) {
-				y = w->nested_root->smallest_y - w->height;
-			}
+			if ((int)w->width + x < (int)w->nested_root->smallest_x) x = w->nested_root->smallest_x - w->width;
+			if ((int)w->height + y < (int)w->nested_root->smallest_y) y = w->nested_root->smallest_y - w->height;
 
 			/* Window already on size */
 			if (x == 0 && y == 0) return ES_HANDLED;
@@ -2655,7 +2654,6 @@ static EventState HandleViewportScroll()
 	 * outside of the window and should not left-mouse scroll anymore. */
 	if (_last_scroll_window == NULL) _last_scroll_window = FindWindowFromPt(_cursor.pos.x, _cursor.pos.y);
 
-
 	if (_last_scroll_window == NULL || !(_right_button_down || scrollwheel_scrolling ||
 			(_left_button_down && (_move_pressed || _settings_client.gui.left_mouse_btn_scrolling)))) {
 		_cursor.fix_at = false;
@@ -2784,23 +2782,15 @@ EventState Window::HandleEditBoxKey(int wid, WChar key, uint16 keycode)
 			break;
 
 		case HKPR_CONFIRM:
-			if (this->window_class == WC_OSK) {
-				this->OnClick(Point(), WID_OSK_OK, 1);
-			} else if (query->ok_button >= 0) {
-				this->OnClick(Point(), query->ok_button, 1);
-			} else {
-				action = query->ok_button;
-			}
+			if (this->window_class == WC_OSK) this->OnClick(Point(), WID_OSK_OK, 1);
+			else if (query->ok_button >= 0) this->OnClick(Point(), query->ok_button, 1);
+			else action = query->ok_button;
 			break;
 
 		case HKPR_CANCEL:
-			if (this->window_class == WC_OSK) {
-				this->OnClick(Point(), WID_OSK_CANCEL, 1);
-			} else if (query->cancel_button >= 0) {
-				this->OnClick(Point(), query->cancel_button, 1);
-			} else {
-				action = query->cancel_button;
-			}
+			if (this->window_class == WC_OSK) this->OnClick(Point(), WID_OSK_CANCEL, 1);
+			else if (query->cancel_button >= 0) this->OnClick(Point(), query->cancel_button, 1);
+			else action = query->cancel_button;
 			break;
 
 		case HKPR_NOT_HANDLED:
@@ -3098,7 +3088,9 @@ static void MouseLoop(MouseClick click, int mousewheel)
 
 	HandlePlacePresize();
 	UpdateTileSelection();
-	if (!mouse_down_on_viewport) HandleMouseDragNoTitlebars();
+	#ifdef __ANDROID__
+		if (!mouse_down_on_viewport) HandleMouseDragNoTitlebars();
+	#endif
 
 	if (VpHandlePlaceSizingDrag()  == ES_HANDLED) return;
 	if (HandleMouseDragDrop()      == ES_HANDLED) return;
@@ -3158,8 +3150,8 @@ static void MouseLoop(MouseClick click, int mousewheel)
 				} else if (_left_button_dragged && mouse_down_on_viewport) {
 					BuildConfirmationWindowProcessViewportClick();
  				}
-				_left_button_dragged = false;
 				mouse_down_on_viewport = false;
+				_left_button_dragged = false;
 				break;
 
 			case MC_RIGHT:
@@ -3387,9 +3379,7 @@ void UpdateWindows()
 	int t = we4_timer + 1;
 
 	if (t >= 100) {
-		FOR_ALL_WINDOWS_FROM_FRONT(w) {
-			w->OnHundredthTick();
-		}
+		FOR_ALL_WINDOWS_FROM_FRONT(w) w->OnHundredthTick();
 		t = 0;
 	}
 	we4_timer = t;
@@ -3420,9 +3410,7 @@ void UpdateWindows()
 void SetWindowDirty(WindowClass cls, WindowNumber number)
 {
 	const Window *w;
-	FOR_ALL_WINDOWS_FROM_BACK(w) {
-		if (w->window_class == cls && w->window_number == number) w->SetDirty();
-	}
+	FOR_ALL_WINDOWS_FROM_BACK(w) if (w->window_class == cls && w->window_number == number) w->SetDirty();
 }
 
 /**
@@ -3434,11 +3422,7 @@ void SetWindowDirty(WindowClass cls, WindowNumber number)
 void SetWindowWidgetDirty(WindowClass cls, WindowNumber number, byte widget_index)
 {
 	const Window *w;
-	FOR_ALL_WINDOWS_FROM_BACK(w) {
-		if (w->window_class == cls && w->window_number == number) {
-			w->SetWidgetDirty(widget_index);
-		}
-	}
+	FOR_ALL_WINDOWS_FROM_BACK(w) if (w->window_class == cls && w->window_number == number) w->SetWidgetDirty(widget_index);
 }
 
 /**
@@ -3448,9 +3432,7 @@ void SetWindowWidgetDirty(WindowClass cls, WindowNumber number, byte widget_inde
 void SetWindowClassesDirty(WindowClass cls)
 {
 	Window *w;
-	FOR_ALL_WINDOWS_FROM_BACK(w) {
-		if (w->window_class == cls) w->SetDirty();
-	}
+	FOR_ALL_WINDOWS_FROM_BACK(w) if (w->window_class == cls) w->SetDirty();
 }
 
 /**
@@ -3486,9 +3468,7 @@ void Window::ProcessHighlightedInvalidations()
 {
 	if ((this->flags & WF_HIGHLIGHTED) == 0) return;
 
-	for (uint i = 0; i < this->nested_array_size; i++) {
-		if (this->IsWidgetHighlighted(i)) this->SetWidgetDirty(i);
-	}
+	for (uint i = 0; i < this->nested_array_size; i++) if (this->IsWidgetHighlighted(i)) this->SetWidgetDirty(i);
 }
 
 /**
@@ -3520,11 +3500,7 @@ void Window::ProcessHighlightedInvalidations()
 void InvalidateWindowData(WindowClass cls, WindowNumber number, int data, bool gui_scope)
 {
 	Window *w;
-	FOR_ALL_WINDOWS_FROM_BACK(w) {
-		if (w->window_class == cls && w->window_number == number) {
-			w->InvalidateData(data, gui_scope);
-		}
-	}
+	FOR_ALL_WINDOWS_FROM_BACK(w) if (w->window_class == cls && w->window_number == number) w->InvalidateData(data, gui_scope);
 }
 
 /**
@@ -3539,11 +3515,7 @@ void InvalidateWindowClassesData(WindowClass cls, int data, bool gui_scope)
 {
 	Window *w;
 
-	FOR_ALL_WINDOWS_FROM_BACK(w) {
-		if (w->window_class == cls) {
-			w->InvalidateData(data, gui_scope);
-		}
-	}
+	FOR_ALL_WINDOWS_FROM_BACK(w) if (w->window_class == cls) w->InvalidateData(data, gui_scope);
 }
 
 /**
@@ -3552,9 +3524,7 @@ void InvalidateWindowClassesData(WindowClass cls, int data, bool gui_scope)
 void CallWindowTickEvent()
 {
 	Window *w;
-	FOR_ALL_WINDOWS_FROM_FRONT(w) {
-		w->OnTick();
-	}
+	FOR_ALL_WINDOWS_FROM_FRONT(w) w->OnTick();
 }
 
 /**
@@ -3674,9 +3644,7 @@ void ReInitAllWindows()
 	InitDepotWindowBlockSizes();
 
 	Window *w;
-	FOR_ALL_WINDOWS_FROM_BACK(w) {
-		w->ReInit();
-	}
+	FOR_ALL_WINDOWS_FROM_BACK(w) w->ReInit();
 #ifdef ENABLE_NETWORK
 	void NetworkReInitChatBoxSize();
 	NetworkReInitChatBoxSize();
@@ -3696,9 +3664,7 @@ void ReInitAllWindows()
  */
 static int PositionWindow(Window *w, WindowClass clss, int setting)
 {
-	if (w == NULL || w->window_class != clss) {
-		w = FindWindowById(clss, 0);
-	}
+	if (w == NULL || w->window_class != clss) w = FindWindowById(clss, 0);
 	if (w == NULL) return 0;
 
 	int old_left = w->left;
@@ -3773,7 +3739,6 @@ void ChangeVehicleViewports(VehicleID from_index, VehicleID to_index)
 		}
 	}
 }
-
 
 /**
  * Relocate all windows to fit the new size of the game application screen

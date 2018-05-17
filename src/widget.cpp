@@ -639,10 +639,12 @@ void Window::DrawWidgets() const
 		}
 	}
 
-	/* Dim the window if it's about to close */
-	if ((this->flags & WF_DRAGGING) && !_settings_client.gui.windows_titlebars && GetWindowDraggedOffScreen(this)) {
-		GfxFillRect(2, 2, this->width - 3, this->height - 3, PALETTE_TO_TRANSPARENT, FILLRECT_RECOLOUR);
-	}
+	#ifdef __ANDROID
+		/* Dim the window if it's about to close */
+		if ((this->flags & WF_DRAGGING) && !_settings_client.gui.windows_titlebars && GetWindowDraggedOffScreen(this)) {
+			GfxFillRect(2, 2, this->width - 3, this->height - 3, PALETTE_TO_TRANSPARENT, FILLRECT_RECOLOUR);
+		}
+	#endif
 }
 
 /**
@@ -946,7 +948,9 @@ NWidgetCore *NWidgetCore::GetWidgetFromPos(int x, int y)
 
 void NWidgetCore::DrawEdgeOrnament(const Window *w) const
 {
-	if (!_settings_client.gui.windows_decorations) return;
+	#ifdef __ANDROID__
+		if (!_settings_client.gui.windows_decorations) return;
+	#endif
 	if (w->window_class == WC_MAIN_TOOLBAR ||
 		w->window_class == WC_MAIN_TOOLBAR_RIGHT ||
 		w->window_class == WC_BUILD_CONFIRMATION ||
@@ -2473,20 +2477,23 @@ void NWidgetLeaf::SetupSmallestSize(Window *w, bool init_array)
 	Dimension resize = {this->resize_x, this->resize_y};
 	/* Get padding, and update size with the real content size if appropriate. */
 	const Dimension *padding = NULL;
-	if (!_settings_client.gui.windows_titlebars && w->window_class != WC_NEWS_WINDOW &&
-		(this->type == WWT_CAPTION || this->type == WWT_STICKYBOX || this->type == WWT_SHADEBOX ||
-		this->type == WWT_DEFSIZEBOX || this->type == WWT_CLOSEBOX || this->type == WWT_DEBUGBOX)) {
-		static const Dimension extra = {0, 0};
-		padding = &extra;
-		this->sizing_type = NWST_OVERRIDE;
-		size = extra;
-		fill = extra;
-		resize = extra;
-		if (this->type == WWT_CAPTION) {
-			fill.width = 1;
-			resize.width = 1;
-		}
-	} else switch (this->type) {
+	#ifdef __ANDROID__
+		if (w->window_class != WC_NEWS_WINDOW && !_settings_client.gui.windows_titlebars && 
+			(this->type == WWT_CAPTION || this->type == WWT_STICKYBOX || this->type == WWT_SHADEBOX ||
+			this->type == WWT_DEFSIZEBOX || this->type == WWT_CLOSEBOX || this->type == WWT_DEBUGBOX)) {
+			static const Dimension extra = {0, 0};
+			padding = &extra;
+			this->sizing_type = NWST_OVERRIDE;
+			size = extra;
+			fill = extra;
+			resize = extra;
+			if (this->type == WWT_CAPTION) {
+				fill.width = 1;
+				resize.width = 1;
+			}
+		} else
+	#endif
+		switch (this->type) {
 		case WWT_EMPTY: {
 			static const Dimension extra = {0, 0};
 			padding = &extra;

@@ -16,13 +16,13 @@
 #include "fileio_func.h"
 
 #if (defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 199309L) || (defined(_XOPEN_SOURCE) && _XOPEN_SOURCE >= 500) || defined(__ANDROID__)
-# include <unistd.h>
+	#include <unistd.h>
 #endif
 
 #ifdef WIN32
-# include <windows.h>
-# include <shellapi.h>
-# include "core/mem_func.hpp"
+	#include <windows.h>
+	#include <shellapi.h>
+	#include "core/mem_func.hpp"
 #endif
 
 #include "safeguards.h"

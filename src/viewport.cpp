@@ -3694,9 +3694,9 @@ void UpdateTileSelection()
 		}
 	}
 
-	if (new_drawstyle & HT_LINE) CalcNewPolylineOutersize();
-
 	if (ConfirmationWindowShown()) return;
+
+	if (new_drawstyle & HT_LINE) CalcNewPolylineOutersize();
 
 	/* redraw selection */
 	if (_thd.drawstyle != new_drawstyle ||
@@ -4673,7 +4673,8 @@ EventState VpHandlePlaceSizingDrag()
 		return ES_HANDLED;
 	}
 
-	if (!(_thd.place_mode & HT_POLY)) ShowBuildConfirmationWindow(); // This will also remember tile selection, so it's okay for the code below to change selection
+	//if (!(_thd.place_mode & HT_POLY)) 
+	ShowBuildConfirmationWindow(); // This will also remember tile selection, so it's okay for the code below to change selection
 
 	/* mouse button released..
 	 * keep the selected tool, but reset it to the original mode. */
@@ -4686,9 +4687,9 @@ EventState VpHandlePlaceSizingDrag()
 	else _thd.place_mode = HT_POINT | others;
 	SetTileSelectSize(1, 1);
 
-	if (_thd.drawstyle != HT_NONE) { // in some cases (when snapping) the track may be completly blank (nothing selected)
-		w->OnPlaceMouseUp(_thd.select_method, _thd.select_proc, _thd.selend, TileVirtXY(_thd.selstart.x, _thd.selstart.y), TileVirtXY(_thd.selend.x, _thd.selend.y));
-	}
+	//if (_thd.drawstyle != HT_NONE) { // in some cases (when snapping) the track may be completly blank (nothing selected)
+	//	w->OnPlaceMouseUp(_thd.select_method, _thd.select_proc, _thd.selend, TileVirtXY(_thd.selstart.x, _thd.selstart.y), TileVirtXY(_thd.selend.x, _thd.selend.y));
+	//}
 
 place_mouseup:
 	return ES_HANDLED;
@@ -4769,16 +4770,10 @@ void SetObjectToPlace(CursorID icon, PaletteID pal, HighLightStyle mode, WindowC
 		VpStartPreSizing();
 	}
 
-	if (mode & HT_POLY) {
-		SetRailSnapMode((mode & HT_NEW_POLY) == HT_NEW_POLY ? RSM_NO_SNAP : RSM_SNAP_TO_RAIL);
-	}
+	if (mode & HT_POLY) SetRailSnapMode((mode & HT_NEW_POLY) == HT_NEW_POLY ? RSM_NO_SNAP : RSM_SNAP_TO_RAIL);
 
-	if ((icon & ANIMCURSOR_FLAG) != 0) {
-		SetAnimatedMouseCursor(_animcursors[icon & ~ANIMCURSOR_FLAG]);
-	} else {
-		SetMouseCursor(icon, pal);
-	}
-
+	if ((icon & ANIMCURSOR_FLAG) != 0) SetAnimatedMouseCursor(_animcursors[icon & ~ANIMCURSOR_FLAG]);
+	else SetMouseCursor(icon, pal);
 }
 
 /** Reset the cursor and mouse mode handling back to default (normal cursor, only clicking in windows). */
@@ -4803,11 +4798,8 @@ void ToolbarSelectLastTool()
 ViewportMapType ChangeRenderMode(const ViewPort *vp, bool down) {
 	ViewportMapType map_type = vp->map_type;
 	if (vp->zoom < ZOOM_LVL_DRAW_MAP) return map_type;
-	if (down) {
-		return (map_type == VPMT_MIN) ? VPMT_MAX : (ViewportMapType) (map_type - 1);
-	} else {
-		return (map_type == VPMT_MAX) ? VPMT_MIN : (ViewportMapType) (map_type + 1);
-	}
+	if (down) return (map_type == VPMT_MIN) ? VPMT_MAX : (ViewportMapType) (map_type - 1);
+	else return (map_type == VPMT_MAX) ? VPMT_MIN : (ViewportMapType) (map_type + 1);
 }
 
 Point GetViewportStationMiddle(const ViewPort *vp, const Station *st)

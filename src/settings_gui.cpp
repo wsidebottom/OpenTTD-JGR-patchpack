@@ -468,60 +468,54 @@ struct GameOptionsWindow : Window {
 		switch (widget) {
 			case WID_GO_FULLSCREEN_BUTTON: // Click fullscreen on/off
 				/* try to toggle full-screen on/off */
-				if (!ToggleFullScreen(!_fullscreen)) {
-					ShowErrorMessage(STR_ERROR_FULLSCREEN_FAILED, INVALID_STRING_ID, WL_ERROR);
-				}
+				if (!ToggleFullScreen(!_fullscreen)) ShowErrorMessage(STR_ERROR_FULLSCREEN_FAILED, INVALID_STRING_ID, WL_ERROR);
 				this->SetWidgetLoweredState(WID_GO_FULLSCREEN_BUTTON, _fullscreen);
 				this->SetDirty();
 				break;
 
-			case WID_GO_WINDOWS_TITLEBARS:
-				_settings_client.gui.windows_titlebars = !_settings_client.gui.windows_titlebars;
-				this->SetWidgetLoweredState(WID_GO_WINDOWS_TITLEBARS, _settings_client.gui.windows_titlebars);
-				this->SetDirty();
-				if (_settings_client.gui.min_button == 48 && _settings_client.gui.windows_titlebars) {
-					_settings_client.gui.min_button = 40;
-					_settings_client.gui.min_step = 40;
-				}
-				if (_settings_client.gui.min_button == 40 && !_settings_client.gui.windows_titlebars) {
-					_settings_client.gui.min_button = 48;
-					_settings_client.gui.min_step = 48;
-				}
-				ReconstructUserInterface();
-				break;
+			#ifdef __ANDROID__
+				case WID_GO_WINDOWS_TITLEBARS:
+					_settings_client.gui.windows_titlebars = !_settings_client.gui.windows_titlebars;
+					this->SetWidgetLoweredState(WID_GO_WINDOWS_TITLEBARS, _settings_client.gui.windows_titlebars);
+					this->SetDirty();
+					if (_settings_client.gui.min_button == 48 && _settings_client.gui.windows_titlebars) {
+						_settings_client.gui.min_button = 40;
+						_settings_client.gui.min_step = 40;
+					}
+					if (_settings_client.gui.min_button == 40 && !_settings_client.gui.windows_titlebars) {
+						_settings_client.gui.min_button = 48;
+						_settings_client.gui.min_step = 48;
+					}
+					ReconstructUserInterface();
+					break;
 
-			case WID_GO_8BPP_BUTTON:
-				if (this->IsWidgetLowered(WID_GO_8BPP_BUTTON)) break;
-				free(_ini_blitter);
-				_ini_blitter = stredup("8bpp-optimized");
-				_exit_game = true;
-				_restart_game = true;
-				#ifdef __ANDROID__
-				SDL_ANDROID_SetConfigOption(SDL_ANDROID_CONFIG_VIDEO_DEPTH_BPP, 16);
-				#endif
-				break;
+				case WID_GO_8BPP_BUTTON:
+					if (this->IsWidgetLowered(WID_GO_8BPP_BUTTON)) break;
+					free(_ini_blitter);
+					_ini_blitter = stredup("8bpp-optimized");
+					_exit_game = true;
+					_restart_game = true;
+					SDL_ANDROID_SetConfigOption(SDL_ANDROID_CONFIG_VIDEO_DEPTH_BPP, 16);
+					break;
+					
+				case WID_GO_16BPP_BUTTON:
+					if (this->IsWidgetLowered(WID_GO_16BPP_BUTTON)) break;
+					free(_ini_blitter);
+					_ini_blitter = stredup("16bpp-simple");
+					_exit_game = true;
+					_restart_game = true;
+					SDL_ANDROID_SetConfigOption(SDL_ANDROID_CONFIG_VIDEO_DEPTH_BPP, 16);
+					break;
 
-			case WID_GO_16BPP_BUTTON:
-				if (this->IsWidgetLowered(WID_GO_16BPP_BUTTON)) break;
-				free(_ini_blitter);
-				_ini_blitter = stredup("16bpp-simple");
-				_exit_game = true;
-				_restart_game = true;
-				#ifdef __ANDROID__
-				SDL_ANDROID_SetConfigOption(SDL_ANDROID_CONFIG_VIDEO_DEPTH_BPP, 16);
-				#endif
-				break;
-
-			case WID_GO_32BPP_BUTTON:
-				if (this->IsWidgetLowered(WID_GO_32BPP_BUTTON)) break;
-				free(_ini_blitter);
-				_ini_blitter = stredup("32bpp-anim");
-				_exit_game = true;
-				_restart_game = true;
-				#ifdef __ANDROID__
-				SDL_ANDROID_SetConfigOption(SDL_ANDROID_CONFIG_VIDEO_DEPTH_BPP, 24);
-				#endif
-				break;
+				case WID_GO_32BPP_BUTTON:
+					if (this->IsWidgetLowered(WID_GO_32BPP_BUTTON)) break;
+					free(_ini_blitter);
+					_ini_blitter = stredup("32bpp-anim");
+					_exit_game = true;
+					_restart_game = true;
+					SDL_ANDROID_SetConfigOption(SDL_ANDROID_CONFIG_VIDEO_DEPTH_BPP, 24);
+					break;
+			#endif
 
 			default: {
 				int selected;
@@ -2951,8 +2945,10 @@ void ReconstructUserInterface()
 	}
 
 	ReInitAllWindows();
-	if (_settings_client.gui.windows_titlebars) {
-		// Hack to prevent second click on the same button via button-up event
-		ShowGameOptions();
-	}
+	#ifdef __ANDROID__
+		if (_settings_client.gui.windows_titlebars) {
+			// Hack to prevent second click on the same button via button-up event
+			ShowGameOptions();
+		}
+	#endif
 }
