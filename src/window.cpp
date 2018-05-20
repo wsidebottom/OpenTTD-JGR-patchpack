@@ -59,7 +59,9 @@ enum ViewportAutoscrolling {
 static bool _dragging_window; ///< A window is being dragged or resized.
 static Point _drag_delta; ///< delta between mouse cursor and upper left corner of dragged window
 static Point _left_button_down_pos; ///< Position of left mouse button down event, to handle the difference between click and drag
-static bool _dragging_widget; ///< A widget inside the window is being dragged, prevent the window itself from being dragged
+#ifdef __ANDROID__
+	static bool _dragging_widget; ///< A widget inside the window is being dragged, prevent the window itself from being dragged
+#endif
 static Window *_mouseover_last_w = NULL; ///< Window of the last #MOUSEOVER event.
 static Window *_last_scroll_window = NULL; ///< Window of the last scroll event.
 
@@ -679,26 +681,24 @@ static void DispatchLeftClickEvent(Window *w, int x, int y, int click_count, boo
 
 	Point pt = { x, y };
 
-	if (mouse_down
-		#ifdef __ANDROID__
-			&& !_settings_client.gui.windows_titlebars
-		#endif
-		) {
-		// TODO: this should be handled inside window or widget methods, not here
-		if (widget_type == NWID_VSCROLLBAR || widget_type == NWID_HSCROLLBAR) {
-			ScrollbarClickHandler(w, nw, x, y);
-			_dragging_widget = true;
+	#ifdef __ANDROID__
+		if (mouse_down && !_settings_client.gui.windows_titlebars) {
+			// TODO: this should be handled inside window or widget methods, not here
+			if (widget_type == NWID_VSCROLLBAR || widget_type == NWID_HSCROLLBAR) {
+				ScrollbarClickHandler(w, nw, x, y);
+				_dragging_widget = true;
+			}
+			if (widget_type == WWT_RESIZEBOX) {
+				StartWindowSizing(w, (int)nw->pos_x < (w->width / 2));
+				nw->SetDirty(w);
+			}
+			if (w->window_class == WC_SMALLMAP && widget_index == WID_SM_MAP) {
+				w->OnClick(pt, widget_index, click_count);
+				_dragging_widget = true;
+			}
+			return;
 		}
-		if (widget_type == WWT_RESIZEBOX) {
-			StartWindowSizing(w, (int)nw->pos_x < (w->width / 2));
-			nw->SetDirty(w);
-		}
-		if (w->window_class == WC_SMALLMAP && widget_index == WID_SM_MAP) {
-			w->OnClick(pt, widget_index, click_count);
-			_dragging_widget = true;
-		}
-		return;
-	}
+	#endif
 
 	/* Close any child drop down menus. If the button pressed was the drop down
 	 * list's own button, then we should not process the click any further. */
@@ -807,16 +807,14 @@ static void DispatchLeftButtonDownEvent(Window *w, int x, int y, int click_count
  * @param x X coordinate of the click
  * @param y Y coordinate of the click
  */
-static void DispatchLeftButtonUpEvent(Window *w, int x, int y)
-{
-	_dragging_widget = false;
-	if (_dragging_window
-	#ifdef __ANDROID__
-			|| _settings_client.gui.windows_titlebars
-	#endif
-		) return;
-	DispatchLeftClickEvent(w, x, y, _left_button_click_count, false);
-}
+#ifdef __ANDROID__
+	static void DispatchLeftButtonUpEvent(Window *w, int x, int y)
+	{
+		_dragging_widget = false;
+		if (_dragging_window || _settings_client.gui.windows_titlebars) return;
+		DispatchLeftClickEvent(w, x, y, _left_button_click_count, false);
+	}
+#endif
 
 /**
  * Dispatch right mouse-button click in window.
@@ -3012,7 +3010,9 @@ static void HandleContinuousScroll()
 enum MouseClick {
 	MC_NONE = 0,
 	MC_LEFT,
-	MC_LEFT_UP,
+	#ifdef __ANDROID__
+		MC_LEFT_UP,
+	#endif
 	MC_RIGHT,
 	MC_DOUBLE_LEFT,
 	MC_HOVER,
@@ -3082,8 +3082,10 @@ static void MouseLoop(MouseClick click, int mousewheel)
 	 * But there is no company related window open anyway, so _current_company is not used. */
 	assert(HasModalProgress() || IsLocalCompany());
 
-	static bool mouse_down_on_viewport = false;
-
+	#ifdef __ANDROID__
+		static bool mouse_down_on_viewport = false;
+	#endif
+	
 	if (click == MC_LEFT) _left_button_down_pos = _cursor.pos;
 
 	HandlePlacePresize();
@@ -3108,7 +3110,9 @@ static void MouseLoop(MouseClick click, int mousewheel)
 	Window *w = FindWindowFromPt(x, y);
 	if (w == NULL) return;
 
-	if (click != MC_NONE && click != MC_HOVER && click != MC_LEFT_UP && !MaybeBringWindowToFront(w)) return;
+	#ifdef __ANDROID__
+		if (click != MC_NONE && click != MC_HOVER && click != MC_LEFT_UP && !MaybeBringWindowToFront(w)) return;
+	#endif
 	ViewPort *vp = IsPtInWindowViewport(w, x, y);
 
 	/* Don't allow any action in a viewport if either in menu or when having a modal progress window */
@@ -3126,11 +3130,15 @@ static void MouseLoop(MouseClick click, int mousewheel)
 		if (scrollwheel_scrolling) click = MC_RIGHT; // we are using the scrollwheel in a viewport, so we emulate right mouse button
 		switch (click) {
 			case MC_DOUBLE_LEFT:
-				mouse_down_on_viewport = true;
+				#ifdef __ANDROID__
+					mouse_down_on_viewport = true;
+				#endif
 				if (HandleViewportDoubleClicked(w, x, y)) break;
 				/* FALL THROUGH */
 			case MC_LEFT:
-				mouse_down_on_viewport = true;
+				#ifdef __ANDROID__
+					mouse_down_on_viewport = true;
+				#endif
 				if (HandleViewportClicked(vp, x, y, click == MC_DOUBLE_LEFT)) return;
 				if (!(w->flags & WF_DISABLE_VP_SCROLL) &&
 						(_settings_client.gui.left_mouse_btn_scrolling || _move_pressed)) {
@@ -3143,16 +3151,18 @@ static void MouseLoop(MouseClick click, int mousewheel)
 				}
 				break;
 
-			case MC_LEFT_UP:
-				if (!_left_button_dragged && mouse_down_on_viewport) {
-					HandleViewportMouseUp(vp, x, y);
-					MoveAllHiddenWindowsBackToScreen();
-				} else if (_left_button_dragged && mouse_down_on_viewport) {
-					BuildConfirmationWindowProcessViewportClick();
- 				}
-				mouse_down_on_viewport = false;
-				_left_button_dragged = false;
-				break;
+			#ifdef __ANDROID__
+				case MC_LEFT_UP:
+					if (!_left_button_dragged && mouse_down_on_viewport) {
+						HandleViewportMouseUp(vp, x, y);
+						MoveAllHiddenWindowsBackToScreen();
+					} else if (_left_button_dragged && mouse_down_on_viewport) {
+						BuildConfirmationWindowProcessViewportClick();
+ 					}
+					mouse_down_on_viewport = false;
+					_left_button_dragged = false;
+					break;
+			#endif
 
 			case MC_RIGHT:
 				if (!(w->flags & WF_DISABLE_VP_SCROLL)) {
@@ -3173,10 +3183,12 @@ static void MouseLoop(MouseClick click, int mousewheel)
 
 	if (vp == NULL || (w->flags & WF_DISABLE_VP_SCROLL)) {
 		switch (click) {
-			case MC_LEFT_UP:
-				DispatchLeftButtonUpEvent(w, x - w->left, y - w->top);
-				mouse_down_on_viewport = false;
-				break;
+			#ifdef __ANDROID__
+				case MC_LEFT_UP:
+					DispatchLeftButtonUpEvent(w, x - w->left, y - w->top);
+					mouse_down_on_viewport = false;
+					break;
+			#endif
 
 			case MC_LEFT:
 			case MC_DOUBLE_LEFT:
@@ -3209,7 +3221,9 @@ void HandleMouseEvents()
 
 	static int double_click_time = 0;
 	static Point double_click_pos = {0, 0};
-	static bool left_button_released = false;
+	#ifdef __ANDROID__
+		static bool left_button_released = false;
+	#endif
 
 	/* Mouse event? */
 	MouseClick click = MC_NONE;
@@ -3223,18 +3237,22 @@ void HandleMouseEvents()
 		double_click_time = _realtime_tick;
 		double_click_pos = _cursor.pos;
 		_left_button_clicked = true;
-		left_button_released = false;
+		#ifdef __ANDROID__
+			left_button_released = false;
+		#endif
 		_input_events_this_tick++;
 	} else if (_right_button_clicked) {
 		_right_button_clicked = false;
 		click = MC_RIGHT;
 		_input_events_this_tick++;
-	} else if(!_left_button_down && !left_button_released) {
-		click = MC_LEFT_UP;
-		left_button_released = true;
-		_left_button_clicked = false;
-		_input_events_this_tick++;
-	}
+	#ifdef __ANDROID__
+		} else if(!_left_button_down && !left_button_released) {
+			click = MC_LEFT_UP;
+			left_button_released = true;
+			_left_button_clicked = false;
+			_input_events_this_tick++;
+	#endif
+		}
 
 	int mousewheel = 0;
 	if (_cursor.wheel) {
@@ -3277,9 +3295,7 @@ void HandleMouseEvents()
 		_newgrf_debug_sprite_picker.sprites.Clear();
 		_newgrf_debug_sprite_picker.mode = SPM_REDRAW;
 		MarkWholeScreenDirty();
-	} else {
-		MouseLoop(click, mousewheel);
-	}
+	} else MouseLoop(click, mousewheel);
 
 	/* We have moved the mouse the required distance,
 	 * no need to move it at any later time. */
