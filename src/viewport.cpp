@@ -3361,9 +3361,7 @@ bool HandleViewportMouseUp(const ViewPort *vp, int x, int y)
 
 	const Vehicle *v = CheckClickOnVehicle(vp, x, y);
 
-	if (_thd.place_mode & HT_VEHICLE) {
-		if (v != NULL && VehicleClicked(v)) return true;
-	}
+	if (_thd.place_mode & HT_VEHICLE) if (v != NULL && VehicleClicked(v)) return true;
 
 	/* Vehicle placement mode already handled above. */
 	if ((_thd.place_mode & HT_DRAG_MASK) != HT_NONE) {
@@ -3393,11 +3391,8 @@ bool HandleViewportMouseUp(const ViewPort *vp, int x, int y)
 		if (IsCompanyBuildableVehicleType(v)) {
 			v = v->First();
 			WindowClass wc = _thd.GetCallbackWnd()->window_class;
-			if ((_ctrl_pressed || _ctrl_toolbar_pressed) && v->owner == _local_company) {
-				StartStopVehicle(v, true);
-			} else if (wc != WC_CREATE_TEMPLATE && wc != WC_TEMPLATEGUI_MAIN) {
-				ShowVehicleViewWindow(v);
-			}
+			if ((_ctrl_pressed || _ctrl_toolbar_pressed) && v->owner == _local_company) StartStopVehicle(v, true);
+			else if (wc != WC_CREATE_TEMPLATE && wc != WC_TEMPLATEGUI_MAIN) ShowVehicleViewWindow(v);
 		}
 		return true;
 	}

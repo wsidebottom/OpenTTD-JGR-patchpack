@@ -58,8 +58,8 @@ enum ViewportAutoscrolling {
 
 static bool _dragging_window; ///< A window is being dragged or resized.
 static Point _drag_delta; ///< delta between mouse cursor and upper left corner of dragged window
-static Point _left_button_down_pos; ///< Position of left mouse button down event, to handle the difference between click and drag
 #ifdef __ANDROID__
+	static Point _left_button_down_pos; ///< Position of left mouse button down event, to handle the difference between click and drag
 	static bool _dragging_widget; ///< A widget inside the window is being dragged, prevent the window itself from being dragged
 #endif
 static Window *_mouseover_last_w = NULL; ///< Window of the last #MOUSEOVER event.
@@ -807,14 +807,15 @@ static void DispatchLeftButtonDownEvent(Window *w, int x, int y, int click_count
  * @param x X coordinate of the click
  * @param y Y coordinate of the click
  */
-#ifdef __ANDROID__
-	static void DispatchLeftButtonUpEvent(Window *w, int x, int y)
-	{
+static void DispatchLeftButtonUpEvent(Window *w, int x, int y)
+{
+	#ifdef __ANDROID__
 		_dragging_widget = false;
 		if (_dragging_window || _settings_client.gui.windows_titlebars) return;
 		DispatchLeftClickEvent(w, x, y, _left_button_click_count, false);
-	}
-#endif
+	#endif	
+	return;
+}
 
 /**
  * Dispatch right mouse-button click in window.
@@ -2115,7 +2116,6 @@ static void HandlePlacePresize()
 			_focused_window->window_class != WC_MAIN_TOOLBAR &&
 			_focused_window->window_class != WC_MAIN_TOOLBAR_RIGHT &&
 			_focused_window->window_class != WC_BUILD_CONFIRMATION) {
-			//SendLeftClickEventToWindow(_focused_window, _left_button_down_pos.x, _left_button_down_pos.y, 1);
 			StartWindowDrag(_focused_window);
 			_drag_delta.x += _cursor.pos.x - _left_button_down_pos.x;
 			_drag_delta.y += _cursor.pos.y - _left_button_down_pos.y;
@@ -2636,9 +2636,7 @@ static EventState HandleViewportScroll()
 		if (_left_button_down) {
 			oldDx += _cursor.delta.x;
 			oldDy += _cursor.delta.y;
-			if (!_left_button_dragged && (abs(oldDx) + abs(oldDy)) * 2 > (int)GetMinSizing(NWST_STEP, 10)) {
-				_left_button_dragged = true;
-			}
+			if (!_left_button_dragged && (abs(oldDx) + abs(oldDy)) * 2 > (int)GetMinSizing(NWST_STEP, 10)) _left_button_dragged = true;
 		} else {
 			oldDx = 0;
 			oldDy = 0;
@@ -3010,9 +3008,7 @@ static void HandleContinuousScroll()
 enum MouseClick {
 	MC_NONE = 0,
 	MC_LEFT,
-	#ifdef __ANDROID__
-		MC_LEFT_UP,
-	#endif
+	MC_LEFT_UP,
 	MC_RIGHT,
 	MC_DOUBLE_LEFT,
 	MC_HOVER,
@@ -3082,14 +3078,14 @@ static void MouseLoop(MouseClick click, int mousewheel)
 	 * But there is no company related window open anyway, so _current_company is not used. */
 	assert(HasModalProgress() || IsLocalCompany());
 
+	static bool mouse_down_on_viewport = false;
 	#ifdef __ANDROID__
-		static bool mouse_down_on_viewport = false;
+		if (click == MC_LEFT) _left_button_down_pos = _cursor.pos;
 	#endif
-	
-	if (click == MC_LEFT) _left_button_down_pos = _cursor.pos;
 
 	HandlePlacePresize();
 	UpdateTileSelection();
+
 	#ifdef __ANDROID__
 		if (!mouse_down_on_viewport) HandleMouseDragNoTitlebars();
 	#endif
@@ -3110,9 +3106,7 @@ static void MouseLoop(MouseClick click, int mousewheel)
 	Window *w = FindWindowFromPt(x, y);
 	if (w == NULL) return;
 
-	#ifdef __ANDROID__
-		if (click != MC_NONE && click != MC_HOVER && click != MC_LEFT_UP && !MaybeBringWindowToFront(w)) return;
-	#endif
+	if (click != MC_NONE && click != MC_HOVER && click != MC_LEFT_UP && !MaybeBringWindowToFront(w)) return;
 	ViewPort *vp = IsPtInWindowViewport(w, x, y);
 
 	/* Don't allow any action in a viewport if either in menu or when having a modal progress window */
@@ -3130,18 +3124,13 @@ static void MouseLoop(MouseClick click, int mousewheel)
 		if (scrollwheel_scrolling) click = MC_RIGHT; // we are using the scrollwheel in a viewport, so we emulate right mouse button
 		switch (click) {
 			case MC_DOUBLE_LEFT:
-				#ifdef __ANDROID__
-					mouse_down_on_viewport = true;
-				#endif
+				mouse_down_on_viewport = true;
 				if (HandleViewportDoubleClicked(w, x, y)) break;
 				/* FALL THROUGH */
 			case MC_LEFT:
-				#ifdef __ANDROID__
-					mouse_down_on_viewport = true;
-				#endif
+				mouse_down_on_viewport = true;
 				if (HandleViewportClicked(vp, x, y, click == MC_DOUBLE_LEFT)) return;
-				if (!(w->flags & WF_DISABLE_VP_SCROLL) &&
-						(_settings_client.gui.left_mouse_btn_scrolling || _move_pressed)) {
+				if (!(w->flags & WF_DISABLE_VP_SCROLL) && (_settings_client.gui.left_mouse_btn_scrolling || _move_pressed)) {
 					_scrolling_viewport = w;
 					_cursor.fix_at = false;
 					return;
@@ -3151,18 +3140,16 @@ static void MouseLoop(MouseClick click, int mousewheel)
 				}
 				break;
 
-			#ifdef __ANDROID__
-				case MC_LEFT_UP:
-					if (!_left_button_dragged && mouse_down_on_viewport) {
-						HandleViewportMouseUp(vp, x, y);
-						MoveAllHiddenWindowsBackToScreen();
-					} else if (_left_button_dragged && mouse_down_on_viewport) {
-						BuildConfirmationWindowProcessViewportClick();
- 					}
-					mouse_down_on_viewport = false;
-					_left_button_dragged = false;
-					break;
-			#endif
+			case MC_LEFT_UP:
+				if (!_left_button_dragged && mouse_down_on_viewport) {
+					HandleViewportMouseUp(vp, x, y);
+					MoveAllHiddenWindowsBackToScreen();
+				} else if (_left_button_dragged && mouse_down_on_viewport) {
+					BuildConfirmationWindowProcessViewportClick();
+ 				}
+				mouse_down_on_viewport = false;
+				_left_button_dragged = false;
+				break;
 
 			case MC_RIGHT:
 				if (!(w->flags & WF_DISABLE_VP_SCROLL)) {
@@ -3183,12 +3170,10 @@ static void MouseLoop(MouseClick click, int mousewheel)
 
 	if (vp == NULL || (w->flags & WF_DISABLE_VP_SCROLL)) {
 		switch (click) {
-			#ifdef __ANDROID__
-				case MC_LEFT_UP:
-					DispatchLeftButtonUpEvent(w, x - w->left, y - w->top);
-					mouse_down_on_viewport = false;
-					break;
-			#endif
+			case MC_LEFT_UP:
+				DispatchLeftButtonUpEvent(w, x - w->left, y - w->top);
+				mouse_down_on_viewport = false;
+				break;
 
 			case MC_LEFT:
 			case MC_DOUBLE_LEFT:
@@ -3221,9 +3206,7 @@ void HandleMouseEvents()
 
 	static int double_click_time = 0;
 	static Point double_click_pos = {0, 0};
-	#ifdef __ANDROID__
-		static bool left_button_released = false;
-	#endif
+	static bool left_button_released = false;
 
 	/* Mouse event? */
 	MouseClick click = MC_NONE;
@@ -3237,22 +3220,18 @@ void HandleMouseEvents()
 		double_click_time = _realtime_tick;
 		double_click_pos = _cursor.pos;
 		_left_button_clicked = true;
-		#ifdef __ANDROID__
-			left_button_released = false;
-		#endif
+		left_button_released = false;
 		_input_events_this_tick++;
 	} else if (_right_button_clicked) {
 		_right_button_clicked = false;
 		click = MC_RIGHT;
 		_input_events_this_tick++;
-	#ifdef __ANDROID__
-		} else if(!_left_button_down && !left_button_released) {
-			click = MC_LEFT_UP;
-			left_button_released = true;
-			_left_button_clicked = false;
-			_input_events_this_tick++;
-	#endif
-		}
+	} else if(!_left_button_down && !left_button_released) {
+		click = MC_LEFT_UP;
+		left_button_released = true;
+		_left_button_clicked = false;
+		_input_events_this_tick++;
+	}
 
 	int mousewheel = 0;
 	if (_cursor.wheel) {
@@ -3878,7 +3857,7 @@ static void MoveAllWindowsOffScreen(bool moveOffScreen)
 
 void MoveAllWindowsOffScreen()
 {
-	if (!_settings_client.gui.hide_windows) MoveAllWindowsOffScreen(true);
+	if (_settings_client.gui.hide_windows) MoveAllWindowsOffScreen(true);
 }
 
 void MoveAllHiddenWindowsBackToScreen()
