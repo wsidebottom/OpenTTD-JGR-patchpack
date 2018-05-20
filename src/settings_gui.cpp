@@ -1906,6 +1906,8 @@ static SettingsContainer &GetSettingsTree()
 				towns->Add(new SettingEntry("economy.allow_town_roads"));
 				towns->Add(new SettingEntry("economy.allow_town_level_crossings"));
 				towns->Add(new SettingEntry("economy.found_town"));
+				towns->Add(new SettingEntry("economy.allow_placing_houses"));
+				towns->Add(new SettingEntry("economy.allow_all_houses"));
 				towns->Add(new SettingEntry("economy.town_cargo_scale_factor"));
 				towns->Add(new SettingEntry("economy.random_road_reconstruction"));
 				towns->Add(new SettingEntry("economy.town_bridge_over_rail"));

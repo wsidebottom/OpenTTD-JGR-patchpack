@@ -564,6 +564,8 @@ struct EconomySettings {
 	TownFoundingByte found_town;             ///< town founding, @see TownFounding
 	bool   station_noise_level;              ///< build new airports when the town noise level is still within accepted limits
 	uint16 town_noise_population[3];         ///< population to base decision on noise evaluation (@see town_council_tolerance)
+	bool   allow_placing_houses;             ///< whether to allow placing houses manually also during gameplay, not only in scenario editor
+	bool   allow_all_houses;				 ///< allow placing of all houses, anywhere on the map
 	bool   infrastructure_sharing[4];        ///< enable infrastructure sharing for rail/road/water/air
 	uint   sharing_fee[4];                   ///< fees for infrastructure sharing for rail/road/water/air
 	bool   sharing_payment_in_debt;          ///< allow fee payment for companies with more loan than money (switch off to prevent MP exploits)

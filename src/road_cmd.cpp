@@ -1623,19 +1623,19 @@ static void TileLoop_Road(TileIndex tile)
 {
 	switch (_settings_game.game_creation.landscape) {
 	case LT_TEMPERATE:
-		case LT_ARCTIC:
-			if (IsOnSnow(tile) != (GetTileZ(tile) > GetSnowLine())) {
-				ToggleSnow(tile);
-				MarkTileDirtyByTile(tile);
-			}
-			break;
+	case LT_ARCTIC:
+		if (IsOnSnow(tile) != (GetTileZ(tile) > GetSnowLine())) {
+			ToggleSnow(tile);
+			MarkTileDirtyByTile(tile);
+		}
+		break;
 
-		case LT_TROPIC:
-			if (GetTropicZone(tile) == TROPICZONE_DESERT && !IsOnDesert(tile)) {
-				ToggleDesert(tile);
-				MarkTileDirtyByTile(tile);
-			}
-			break;
+	case LT_TROPIC:
+		if (GetTropicZone(tile) == TROPICZONE_DESERT && !IsOnDesert(tile)) {
+			ToggleDesert(tile);
+			MarkTileDirtyByTile(tile);
+		}
+		break;
 	}
 
 	if (IsRoadDepot(tile)) return;

@@ -1259,6 +1259,9 @@ void SQGSWindow_Register(Squirrel *engine)
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_TF_LAYOUT_GRID2,                       "WID_TF_LAYOUT_GRID2");
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_TF_LAYOUT_GRID3,                       "WID_TF_LAYOUT_GRID3");
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_TF_LAYOUT_RANDOM,                      "WID_TF_LAYOUT_RANDOM");
+	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_ST_CAPTION,                            "WID_ST_CAPTION");
+	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_ST_PANEL,                              "WID_ST_PANEL");
+	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_ST_SCROLLBAR,                          "WID_ST_SCROLLBAR");
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_CAPTION,                            "WID_HP_CAPTION");
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_MAIN_PANEL_SEL,                     "WID_HP_MAIN_PANEL_SEL");
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_HOUSE_SETS_SEL,                     "WID_HP_HOUSE_SETS_SEL");
@@ -1267,6 +1270,10 @@ void SQGSWindow_Register(Squirrel *engine)
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_HOUSE_SELECT_SCROLL,                "WID_HP_HOUSE_SELECT_SCROLL");
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_HOUSE_SELECT,                       "WID_HP_HOUSE_SELECT");
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_HOUSE_PREVIEW,                      "WID_HP_HOUSE_PREVIEW");
+	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_PREV_VARIANT_SEL,                   "WID_HP_PREV_VARIANT_SEL");
+	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_PREV_VARIANT,                       "WID_HP_PREV_VARIANT");
+	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_NEXT_VARIANT_SEL,                   "WID_HP_NEXT_VARIANT_SEL");
+	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_NEXT_VARIANT,                       "WID_HP_NEXT_VARIANT");
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_HOUSE_NAME,                         "WID_HP_HOUSE_NAME");
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_HISTORICAL_BUILDING,                "WID_HP_HISTORICAL_BUILDING");
 	SQGSWindow.DefSQConst(engine, ScriptWindow::WID_HP_HOUSE_POPULATION,                   "WID_HP_HOUSE_POPULATION");

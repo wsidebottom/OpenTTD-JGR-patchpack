@@ -1268,7 +1268,7 @@ static CommandCost CheckNewIndustry_Plantation(TileIndex tile)
  */
 static CommandCost CheckNewIndustry_Water(TileIndex tile)
 {
-	if (GetTropicZone(tile) != TROPICZONE_DESERT) {
+	if ((GetTropicZone(tile) != TROPICZONE_DESERT) || (GetTropicZone(tile) != TROPICZONE_NORMAL)) {
 		return_cmd_error(STR_ERROR_CAN_ONLY_BE_BUILT_IN_DESERT);
 	}
 	return CommandCost();
@@ -1281,7 +1281,7 @@ static CommandCost CheckNewIndustry_Water(TileIndex tile)
  */
 static CommandCost CheckNewIndustry_Lumbermill(TileIndex tile)
 {
-	if (GetTropicZone(tile) != TROPICZONE_RAINFOREST) {
+	if ((GetTropicZone(tile) != TROPICZONE_RAINFOREST) || (GetTropicZone(tile) != TROPICZONE_NORMAL)) {
 		return_cmd_error(STR_ERROR_CAN_ONLY_BE_BUILT_IN_RAINFOREST);
 	}
 	return CommandCost();
