@@ -3878,7 +3878,7 @@ static void MoveAllWindowsOffScreen(bool moveOffScreen)
 
 void MoveAllWindowsOffScreen()
 {
-	if (_settings_client.gui.hide_windows) MoveAllWindowsOffScreen(true);
+	if (!_settings_client.gui.hide_windows) MoveAllWindowsOffScreen(true);
 }
 
 void MoveAllHiddenWindowsBackToScreen()
