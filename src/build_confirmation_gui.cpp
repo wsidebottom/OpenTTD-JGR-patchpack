@@ -190,8 +190,8 @@ struct BuildConfirmationWindow : Window {
 	{
 		switch (widget) {
 		case WID_BC_OK:
-			size->width = ScaleGUITrad(64) + 2;
-			size->height = ScaleGUITrad(48) + 2;
+			size->width = GetMinSizing(NWST_BUTTON) * 2;
+			size->height = GetMinSizing(NWST_BUTTON) * 3;
 			break;
 		}
 	}
@@ -222,7 +222,7 @@ bool BuildConfirmationWindow::estimating_cost = false;
 
 static const NWidgetPart _nested_build_confirmation_widgets[] = {
 	NWidget(WWT_PANEL, COLOUR_GREY, WID_BC_PANEL),
-	NWidget(NWID_VIEWPORT, INVALID_COLOUR, WID_BC_OK), SetMinimalSize(100, 80), SetFill(1, 1), SetResize(1, 1), SetPadding(2, 2, 2, 2),
+	NWidget(NWID_VIEWPORT, INVALID_COLOUR, WID_BC_OK), SetSizingType(NWST_VIEWPORT), SetResize(1, 1), SetFill(1, 1), //SetPadding(2, 2, 2, 2),
 	EndContainer(),
 };
 
