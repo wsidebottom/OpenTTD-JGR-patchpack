@@ -3835,7 +3835,6 @@ static void MoveAllWindowsOffScreen(bool moveOffScreen)
 					if (w->left < _screen.width) {
 						w->left += _screen.width;
 						if (w->viewport != NULL) w->viewport->left += _screen.width;
-						//w->SetDirty();
 						updateScreen = true;
 					}
 				} else {
@@ -3843,7 +3842,6 @@ static void MoveAllWindowsOffScreen(bool moveOffScreen)
 						w->left -= _screen.width;
 						if (w->viewport != NULL) w->viewport->left -= _screen.width;
 						w->SetDirty();
-						//updateScreen = true;
 					}
 				}
 				break;

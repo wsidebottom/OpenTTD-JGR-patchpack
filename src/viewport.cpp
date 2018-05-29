@@ -1801,7 +1801,6 @@ static void ViewportMapDrawVehicleRoute(const ViewPort *vp)
 	}
 
 	switch (_settings_client.gui.show_vehicle_route) {
-		/* case 0: return; // No */
 		case 1: { // Simple
 			if (!ViewportMapPrepareVehicleRoute(veh)) {
 				if (!_vp_route_paths.empty()) {
@@ -4681,10 +4680,6 @@ EventState VpHandlePlaceSizingDrag()
 	else if (_thd.select_method & VPM_RAILDIRS) _thd.place_mode = (_thd.select_method & ~VPM_RAILDIRS ? _thd.next_drawstyle : HT_RAIL) | others;
 	else _thd.place_mode = HT_POINT | others;
 	SetTileSelectSize(1, 1);
-
-	//if (_thd.drawstyle != HT_NONE) { // in some cases (when snapping) the track may be completly blank (nothing selected)
-	//	w->OnPlaceMouseUp(_thd.select_method, _thd.select_proc, _thd.selend, TileVirtXY(_thd.selstart.x, _thd.selstart.y), TileVirtXY(_thd.selend.x, _thd.selend.y));
-	//}
 
 place_mouseup:
 	return ES_HANDLED;
