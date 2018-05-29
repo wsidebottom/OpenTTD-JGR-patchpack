@@ -277,6 +277,8 @@
 		#endif
 	#endif
 
+	#define strtoull _strtoui64
+
 	#if defined(WINCE)
 		#define strcasecmp _stricmp
 		#define strncasecmp _strnicmp

@@ -202,6 +202,30 @@ bool GetArgumentInteger(uint32 *value, const char *arg)
 }
 
 /**
+ * Change a string into its number representation, using signed integer. Supports
+ * decimal and hexadecimal numbers as well as 'on'/'off' 'true'/'false'
+ * @param *value the variable a successfull conversion will be put in
+ * @param *arg the string to be converted
+ * @return Return true on success or false on failure
+ */
+bool GetArgumentSignedInteger(int32 *value, const char *arg)
+{
+	char *endptr;
+
+	if (strcmp(arg, "on") == 0 || strcmp(arg, "true") == 0) {
+		*value = 1;
+		return true;
+	}
+	if (strcmp(arg, "off") == 0 || strcmp(arg, "false") == 0) {
+		*value = 0;
+		return true;
+	}
+
+	*value = strtol(arg, &endptr, 0);
+	return arg != endptr;
+}
+
+/**
  * Add an item to an alphabetically sorted list.
  * @param base first item of the list
  * @param item_new the item to add

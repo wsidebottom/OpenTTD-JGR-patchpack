@@ -80,6 +80,7 @@ void IConsoleStdLibRegister();
 
 /* Supporting functions */
 bool GetArgumentInteger(uint32 *value, const char *arg);
+bool GetArgumentSignedInteger(int32 *value, const char *arg);
 
 void IConsoleGUIInit();
 void IConsoleGUIFree();

@@ -301,7 +301,7 @@ static WindowDesc _town_authority_desc(
 	_nested_town_authority_widgets, lengthof(_nested_town_authority_widgets)
 );
 
-static void ShowTownAuthorityWindow(uint town)
+void ShowTownAuthorityWindow(uint town)
 {
 	AllocateWindowDescFront<TownAuthorityWindow>(&_town_authority_desc, town);
 }

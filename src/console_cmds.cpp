@@ -13,6 +13,7 @@
 #include "console_internal.h"
 #include "debug.h"
 #include "engine_func.h"
+#include "train.h"
 #include "landscape.h"
 #include "saveload/saveload.h"
 #include "network/network.h"
@@ -24,14 +25,24 @@
 #include "settings_func.h"
 #include "fios.h"
 #include "fileio_func.h"
+#include "group.h"
+#include "core/random_func.hpp"
 #include "screenshot.h"
 #include "genworld.h"
 #include "strings_func.h"
 #include "viewport_func.h"
 #include "window_func.h"
+#include "cargotype.h"
 #include "date_func.h"
+#include "vehicle_base.h"
+#include "vehicle_func.h"
+#include "vehicle_gui.h"
+#include "vehiclelist.h"
+#include "string_func.h"
 #include "company_func.h"
 #include "gamelog.h"
+#include "town.h"
+#include "industry.h"
 #include "ai/ai.hpp"
 #include "ai/ai_config.hpp"
 #include "newgrf.h"
@@ -44,6 +55,12 @@
 #include "station_base.h"
 
 #include "safeguards.h"
+
+#ifdef UNIX
+#include <stdarg.h>
+#include <ctype.h>
+#define stricmp strcasecmp
+#endif
 
 /* scriptfile handling */
 static bool _script_running; ///< Script is running (used to abort execution when #ConReturn is encountered).
@@ -190,6 +207,20 @@ static void IConsoleHelp(const char *str)
 	IConsolePrintF(CC_WARNING, "- %s", str);
 }
 
+/** Print string as command help in console, using printf-like formatting */
+void CDECL IConsoleHelpF(const char *s, ...)
+{
+	va_list va;
+	char buf[ICON_MAX_STREAMSIZE];
+
+	va_start(va, s);
+	//vsnprintf(buf, sizeof(buf), s, va);
+	vseprintf(buf, lastof(buf), s, va);
+	va_end(va);
+
+	IConsoleHelp(buf);
+}
+
 /**
  * Reset status of all engines.
  * @return Will always succeed.
@@ -230,7 +261,6 @@ DEF_CONSOLE_CMD(ConResetEnginePool)
 	return true;
 }
 
-#ifdef _DEBUG
 /**
  * Reset a tile to bare land in debug mode.
  * param tile number.
@@ -254,7 +284,6 @@ DEF_CONSOLE_CMD(ConResetTile)
 
 	return false;
 }
-#endif /* _DEBUG */
 
 /**
  * Scroll to a tile on the map.
@@ -612,9 +641,7 @@ DEF_CONSOLE_CMD(ConBanList)
 	IConsolePrint(CC_DEFAULT, "Banlist: ");
 
 	uint i = 1;
-	for (char **iter = _network_ban_list.Begin(); iter != _network_ban_list.End(); iter++, i++) {
-		IConsolePrintF(CC_DEFAULT, "  %d) %s", i, *iter);
-	}
+	for (char **iter = _network_ban_list.Begin(); iter != _network_ban_list.End(); iter++, i++) IConsolePrintF(CC_DEFAULT, "  %d) %s", i, *iter);
 
 	return true;
 }
@@ -1891,6 +1918,1615 @@ DEF_CONSOLE_CMD(ConSettingNewgame)
 	return true;
 }
 
+/** Identifier of alias for matches and commands*/
+const int LIST_ALIAS = -1;
+
+/**
+ Vehicle command ID
+*/
+enum VehicleCommand {
+	VEHICLE_COMMAND_ALIAS = LIST_ALIAS,
+	VEHICLE_INVALID_COMMAND = 0,
+	VEHICLE_CENTER,
+	VEHICLE_CLONE,
+	VEHICLE_CLONE_SHARED,
+	VEHICLE_DEPOT,
+	TRAIN_IGNORE,
+	TRAIN_WAGON_INFO,
+	TRAIN_SELL_WAGON,
+	VEHICLE_INFO,
+	VEHICLE_LEAVE_STATION,
+	VEHICLE_OPEN,
+	VEHICLE_SELL,
+	VEHICLE_SERVICE,
+	VEHICLE_SKIP_ORDER,
+	VEHICLE_START,
+	VEHICLE_STOP,
+	VEHICLE_TURN,
+	VEHICLE_INTERVAL,
+	VEHICLE_UNDEPOT,
+	VEHICLE_UNSERVICE,
+	VEHICLE_COUNT
+};
+
+/**
+ Town command ID
+*/
+enum TownCommand {
+	TOWN_COMMAND_ALIAS = LIST_ALIAS,
+	TOWN_INVALID_COMMAND = 0,
+	TOWN_CENTER,
+	TOWN_INFO,
+	TOWN_PRINT,
+	TOWN_OPEN,
+	TOWN_OPEN_AUTH,
+	TOWN_ACTION_AD_SMALL,
+	TOWN_ACTION_AD_MEDIUM,
+	TOWN_ACTION_AD_LARGE,
+	TOWN_ACTION_ROAD,
+	TOWN_ACTION_STATUE,
+	TOWN_ACTION_FUND,
+	TOWN_ACTION_EXCLUSIVE,
+	TOWN_ACTION_BRIBE,
+	TOWN_EXPAND,
+	TOWN_DELETE,
+	TOWN_COUNT
+};
+
+/** First available town action */
+const TownCommand TOWN_ACTION_0 = TOWN_ACTION_AD_SMALL;
+
+/**
+ Industry command ID
+*/
+enum IndustryCommand {
+	INDUSTRY_COMMAND_ALIAS = LIST_ALIAS,
+	INDUSTRY_INVALID_COMMAND = 0,
+	INDUSTRY_CENTER,
+	INDUSTRY_INFO,
+	INDUSTRY_OPEN,
+	INDUSTRY_COUNT
+};
+
+/**
+ Type of match for vehicle, town and industry commands
+*/
+enum MatchType {
+	//Generic
+	MATCH_ALIAS = LIST_ALIAS,
+	MATCH_INVALID = 0,
+	MATCH_GENERIC,
+	MATCH_ALL,
+
+	//Vehicles
+	MATCH_GROUP,
+	MATCH_CRASHED,
+	MATCH_LENGTH,
+	MATCH_WAGONS,
+	MATCH_ORDERS,
+	MATCH_SPEED,
+	MATCH_AGE,
+	MATCH_BREAKDOWNS,
+	MATCH_MAXSPEED,
+	MATCH_PROFIT,
+	MATCH_PROFIT_THIS,
+	MATCH_PROFIT_LAST,
+	MATCH_SERVICE,
+	MATCH_IN_DEPOT,
+	MATCH_BROKEN,
+
+	//Towns
+	MATCH_TOWN_POPULATION,
+	MATCH_TOWN_HOUSES,
+	MATCH_TOWN_RATING,
+	MATCH_TOWN_STATUE,
+	MATCH_TOWN_NO_STATUE,
+	MATCH_TOWN_FUNDING,
+	MATCH_TOWN_ROADWORKS,
+	MATCH_TOWN_EXCLUSIVE_COMPANY,
+	MATCH_TOWN_EXCLUSIVE_MONTHS,
+	MATCH_TOWN_EXCLUSIVE_MY_MONTHS,
+	MATCH_TOWN_EXCLUSIVE_OTHERS_MONTHS,
+	MATCH_TOWN_UNWANTED_MONTHS,
+	MATCH_TOWN_NOISE,
+	MATCH_TOWN_NOISE_REMAIN,
+	MATCH_TOWN_NOISE_MAX,
+
+	//Industries
+	MATCH_INDUSTRY_PRODUCTION,
+	MATCH_INDUSTRY_PRODUCTION_THIS,
+	MATCH_INDUSTRY_PERCENT,
+	MATCH_INDUSTRY_PERCENT_THIS,
+
+};
+
+/**
+ Subtype of match for numeric matches
+*/
+enum MatchSubtype {
+	MATCH_NONE,
+	MATCH_NOT_EQUAL,
+	MATCH_EQUAL,
+	MATCH_LESS,
+	MATCH_LESS_OR_EQUAL,
+	MATCH_GREATER_OR_EQUAL,
+	MATCH_GREATER
+};
+
+/**
+ Structure with match information
+*/
+class MatchInfo {
+public:
+	/** Type of match */
+	MatchType type;
+	/** Subtype of match */
+	MatchSubtype subtype;
+	/** Parameter of match */
+	const char *id;
+	/** Next match in chain */
+	MatchInfo *next;
+	/** Constructor */
+	MatchInfo(): type(MATCH_GENERIC), subtype(MATCH_NONE), id(NULL), next(NULL) {
+	}
+	/** Constructor */
+	MatchInfo(MatchType t, MatchSubtype st, const char *ix): next(NULL) {
+		type = t;
+		subtype = st;
+		id = ix;
+	}
+	~MatchInfo() {
+		if (next) delete next;
+	}
+};
+
+// Bitmask for StringInfo<T>.req
+//Vehicles
+const int FOR_TRAIN     = 0x01; //Command for train
+const int FOR_ROAD      = 0x02; //Command for road vehicle
+const int FOR_SHIP      = 0x04; //Command for ship
+const int FOR_AIRCRAFT  = 0x08; //Command for plane
+const int NOT_CRASHED   = 0x10; //Target vehicle must not be crashed
+const int IN_DEPOT      = 0x20; //Target vehicle must be in depot
+const int STOPPED       = 0x40; //Target vehicle must be stopped
+const int IS_ALIAS      = 0x80; //Internal flag for command alias
+const int FOR_VEHICLE   = FOR_TRAIN | FOR_ROAD | FOR_SHIP | FOR_AIRCRAFT; //Command for any vehicle
+//Towns
+const int FOR_TOWN      = 0x100; //Command for town
+//Industries
+const int FOR_INDUSTRY  = 0x200; //Command for industry
+//All types
+const int USE_PRINTF    = 0x400; //Help text contains one %s to be replaced by name of target object type
+const int IN_EDITOR     = 0x800; //Command usable only in editor
+
+/**
+ Structure mapping one command or match type to it's ID
+*/
+template<typename T> struct StringInfo {
+ /** ID of command or match */
+ T id;
+ /** Name of command or match */
+ const char *name;
+ /** Number of required parameters */
+ int params;
+ /** Requirements for target of command */
+ int req;
+ /** Help text */
+ const char *help;
+};
+
+/**
+ List of all command names for vehicle commands.
+ All aliases must be listed right before their commands
+ */
+const StringInfo<VehicleCommand> veh_commands[] = {
+	{ VEHICLE_COMMAND_ALIAS, "centre",              0, 0, "" },
+	{ VEHICLE_CENTER,        "center",              0, FOR_VEHICLE,
+	                         "Center main view on vehicle's location" },
+	{ VEHICLE_CLONE,         "clone",               0, FOR_VEHICLE | IN_DEPOT,
+	                         "Clone vehicle, if it is in depot. Parameter specifies number of created clones (default 1)" },
+	{ VEHICLE_CLONE_SHARED,  "clone_shared",        0, FOR_VEHICLE | IN_DEPOT,
+	                         "Same as clone, but with shared orders"  },
+	{ VEHICLE_COUNT,         "count",               0, FOR_VEHICLE,
+	                         "Count vehicles matching given criteria" },
+	{ VEHICLE_DEPOT,         "depot",               0, FOR_VEHICLE | NOT_CRASHED,
+	                         "Send to depot" },
+	{ TRAIN_IGNORE,          "ignore",              0, FOR_TRAIN | NOT_CRASHED,
+	                         "Ignore signals" },
+	{ VEHICLE_INFO,          "info",                0, FOR_VEHICLE,
+	                         "Show vehicle info in console" },
+	{ VEHICLE_INTERVAL,      "interval",            1, FOR_VEHICLE | NOT_CRASHED,
+	                         "Set servicing interval. Parameter specifies new interval in days/percent" },
+	{ VEHICLE_LEAVE_STATION, "leave",               0, FOR_VEHICLE | NOT_CRASHED,
+	                         "Leave station by skipping to next order" },
+	{ VEHICLE_COMMAND_ALIAS, "show",                0, 0, "" },
+	{ VEHICLE_OPEN,          "open",                0, FOR_VEHICLE,
+	                         "Open vehicle window" },
+	{ VEHICLE_SELL,          "sell",                0, FOR_VEHICLE | STOPPED | IN_DEPOT,
+	                         "Sell vehicle, if it is stopped in depot" },
+	{ VEHICLE_SERVICE,       "service",             0, FOR_VEHICLE | NOT_CRASHED,
+	                         "Send for servicing" },
+	{ VEHICLE_SKIP_ORDER,    "skip",                0, FOR_VEHICLE | NOT_CRASHED,
+	                         "Skip to next order. Optional parameter specifies how many orders to skip ('r' = skip to random order, default is 1)" },
+	{ VEHICLE_COMMAND_ALIAS, "go",                  0, 0, ""},
+	{ VEHICLE_START,         "start",               0, FOR_VEHICLE | NOT_CRASHED,
+	                         "Start vehicle" },
+	{ VEHICLE_STOP,          "stop",                0, FOR_VEHICLE | NOT_CRASHED,
+	                         "Stop vehicle" },
+	{ VEHICLE_COMMAND_ALIAS, "reverse",             0, 0, "" },
+	{ VEHICLE_TURN,          "turn",                0, FOR_TRAIN | FOR_ROAD | NOT_CRASHED,
+	                         "Turn around" },
+	{ VEHICLE_UNSERVICE,     "unservice",           0, FOR_VEHICLE | NOT_CRASHED,
+	                         "Cancel order to be sent for servicing" },
+	{ VEHICLE_UNDEPOT,       "undepot",             0, FOR_VEHICLE | NOT_CRASHED,
+	                         "Cancel order to be sent to depot" },
+	{ TRAIN_WAGON_INFO,      "winfo",               0, FOR_TRAIN,
+	                         "Show info about train wagons in console" },
+	{ TRAIN_SELL_WAGON,      "wsell",               1, FOR_TRAIN | STOPPED | IN_DEPOT,
+	                         "Sell train wagons(s). If one parameter is given, single wagon will be sold. If two parameters are given, they will specify range of wagons to sell." },
+};
+
+/**
+ List of all command names for town commands.
+ All aliases must be listed right before their commands
+ */
+const StringInfo<TownCommand> town_commands[] = {
+	{ TOWN_COMMAND_ALIAS,    "centre",              0, 0, "" },
+	{ TOWN_CENTER,           "center",              0, FOR_TOWN,
+	                         "Center main view on town location" },
+	{ TOWN_COUNT,            "count",               0, FOR_TOWN,
+	                         "Count towns matching given criteria" },
+	{ TOWN_INFO,             "info",                0, FOR_TOWN,
+	                         "Show town info in console" },
+	{ TOWN_PRINT,            "print",               0, FOR_TOWN,
+	                         "Print town name in console" },
+	{ TOWN_COMMAND_ALIAS,    "show",                0, 0, "" },
+	{ TOWN_OPEN,             "open",                0, FOR_TOWN,
+	                         "Open town window" },
+	{ TOWN_OPEN_AUTH,        "auth",                0, FOR_TOWN,
+	                         "Open town authority window" },
+	{ TOWN_COMMAND_ALIAS,    "small_ad",            0, 0, "" },
+	{ TOWN_ACTION_AD_SMALL,  "ad_small",            0, FOR_TOWN,
+	                         "Launch small advertising campaign in the town" },
+	{ TOWN_COMMAND_ALIAS,    "medium_ad",           0, 0, "" },
+	{ TOWN_ACTION_AD_MEDIUM, "ad_medium",           0, FOR_TOWN,
+	                         "Launch medium advertising campaign in the town" },
+	{ TOWN_COMMAND_ALIAS,    "large_ad",            0, 0, "" },
+	{ TOWN_ACTION_AD_LARGE,  "ad_large",            0, FOR_TOWN,
+	                         "Launch large advertising campaign in the town" },
+	{ TOWN_COMMAND_ALIAS,    "reconstruction",      0, 0, "" },
+	{ TOWN_ACTION_ROAD,      "road",                0, FOR_TOWN,
+	                         "Fund road reconstruction in town" },
+	{ TOWN_ACTION_STATUE,    "statue",              0, FOR_TOWN,
+	                         "Build statue in town" },
+	{ TOWN_COMMAND_ALIAS,    "building",            0, 0, "" },
+	{ TOWN_ACTION_FUND,      "fund",                0, FOR_TOWN,
+	                         "Fund construction of new buildings" },
+	{ TOWN_ACTION_EXCLUSIVE, "exclusive",           0, FOR_TOWN,
+	                         "Buy exclusive rights in town" },
+	{ TOWN_ACTION_BRIBE,     "bribe",               0, FOR_TOWN,
+	                         "Bribe town authority" },
+	{ TOWN_EXPAND,           "expand",              0, FOR_TOWN | IN_EDITOR,
+	                         "Expand town (scenario editor only) Parameter specifies number of repetitions (default 1)" },
+	{ TOWN_DELETE,           "delete",              0, FOR_TOWN | IN_EDITOR,
+	                         "Delete the town (scenario editor only)" },
+};
+
+/**
+ List of all command names for industry commands.
+ All aliases must be listed right before their commands
+ */
+const StringInfo<IndustryCommand> ind_commands[] = {
+	{ INDUSTRY_COMMAND_ALIAS, "centre",              0, 0, "" },
+	{ INDUSTRY_CENTER,        "center",              0, FOR_INDUSTRY,
+	                          "Center main view on industry location" },
+	{ INDUSTRY_COUNT,         "count",               0, FOR_INDUSTRY,
+	                          "Count industries matching given criteria" },
+	{ INDUSTRY_INFO,          "info",                0, FOR_INDUSTRY,
+	                          "Show industry info in console" },
+	{ INDUSTRY_COMMAND_ALIAS, "show",                0, 0, "" },
+	{ INDUSTRY_OPEN,          "open",                0, FOR_INDUSTRY,
+	                          "Open industry window" },
+};
+
+/**
+ List of all non-numeric match names.
+ */
+const StringInfo<MatchType> match_nn_info[] = {
+	{ MATCH_ALL,              "all",         0, FOR_VEHICLE | FOR_INDUSTRY | FOR_TOWN | USE_PRINTF,
+	                          " for all %ss" },
+	{ MATCH_ALL,              "*",           0, FOR_VEHICLE | FOR_INDUSTRY | FOR_TOWN | USE_PRINTF,
+	                          " for all %ss" },
+	{ MATCH_BROKEN,           "broken",      0, FOR_VEHICLE | USE_PRINTF,
+	                          " for all broken down %ss" },
+	{ MATCH_CRASHED,          "crashed",     0, FOR_VEHICLE | USE_PRINTF,
+	                          " for all crashed %ss" },
+	{ MATCH_IN_DEPOT,         "depot",       0, FOR_VEHICLE | USE_PRINTF,
+	                          " for all %ss in depot" },
+	{ MATCH_TOWN_STATUE,      "statue",      0, FOR_TOWN,
+	                          " for all towns where you have a statue" },
+	{ MATCH_TOWN_NO_STATUE,   "no_statue",   0, FOR_TOWN,
+	                          " for all towns where you don't have a statue" },
+};
+
+/**
+ List of all numeric match names.
+ */
+const StringInfo<MatchType> match_info[] = {
+	//Vehicles
+	{ MATCH_AGE,         "age",         0, FOR_VEHICLE,
+	                     "=[value] for matching age (in years)" },
+	{ MATCH_BREAKDOWNS,  "breakdowns",  0, FOR_VEHICLE,
+	                     "=[value] for matching breakdowns since last service" },
+	{ MATCH_LENGTH,      "len",         0, FOR_TRAIN,
+	                     "=[value] for matching train length (in tiles)" },
+	{ MATCH_MAXSPEED,    "maxspeed",    0, FOR_VEHICLE,
+	                     "=[value] for matching maximum speed (in km/h)" },
+	{ MATCH_ORDERS,      "orders",      0, FOR_VEHICLE,
+	                     "=[value] for matching number of orders" },
+	{ MATCH_GROUP,       "group",       0, FOR_VEHICLE,
+	                     "=[name] for matching group by name" },
+	{ MATCH_PROFIT,      "profit",      0, FOR_VEHICLE,
+	                     "=[value] for matching sum of this and last year's profit (in pounds)" },
+	{ MATCH_PROFIT_THIS, "profit_this", 0, FOR_VEHICLE,
+	                     "=[value] for matching this year's profit (in pounds)" },
+	{ MATCH_PROFIT_LAST, "profit_last", 0, FOR_VEHICLE,
+	                     "=[value] for matching last year's profit (in pounds)" },
+	{ MATCH_SERVICE,     "service",     0, FOR_VEHICLE,
+	                     "=[value] for matching service interval (in days/percent)" },
+	{ MATCH_SPEED,       "speed",       0, FOR_VEHICLE,
+	                     "=[value] for matching current speed (in km/h)" },
+	{ MATCH_WAGONS,      "wagons",      0, FOR_TRAIN,
+	                     "=[value] for matching number of train wagons" },
+
+	//Towns
+	{ MATCH_TOWN_POPULATION,              "population",      0, FOR_TOWN,
+	                                      "=[value] for matching town population" },
+	{ MATCH_TOWN_HOUSES,                  "houses",          0, FOR_TOWN,
+	                                      "=[value] for matching number of town houses" },
+	{ MATCH_TOWN_RATING,                  "rating",          0, FOR_TOWN,
+	                                      "=[value] for matching your rating in town" },
+	{ MATCH_TOWN_NOISE,                   "currnoise",       0, FOR_TOWN,
+	                                      "=[value] for matching currently used noise level" },
+	{ MATCH_TOWN_NOISE_REMAIN,            "noise",           0, FOR_TOWN,
+	                                      "=[value] for matching remaining (usable by you) noise level" },
+	{ MATCH_TOWN_NOISE_MAX,               "maxnoise",        0, FOR_TOWN,
+	                                      "=[value] for matching maximal noise level" },
+	{ MATCH_TOWN_FUNDING,                 "fund",            0, FOR_TOWN,
+	                                      "=[value] for matching months remaining in building funding" },
+	{ MATCH_TOWN_ROADWORKS,               "roadworks",       0, FOR_TOWN,
+	                                      "=[value] for matching months remaining in road reconstructions" },
+	{ MATCH_TOWN_EXCLUSIVE_COMPANY,       "exclusive",       0, FOR_TOWN,
+	                                      "=[value] for matching company having exclusive rights" },
+	{ MATCH_TOWN_EXCLUSIVE_MONTHS,        "any_exclusive",   0, FOR_TOWN,
+	                                      "=[value] for matching months of remaining exclusive rights for any company" },
+	{ MATCH_TOWN_EXCLUSIVE_MY_MONTHS,     "my_exclusive",    0, FOR_TOWN,
+	                                      "=[value] for matching months of remaining exclusive rights for your company" },
+	{ MATCH_TOWN_EXCLUSIVE_OTHERS_MONTHS, "other_exclusive", 0, FOR_TOWN,
+	                                      "=[value] for matching months of remaining exclusive rights for any competitor company" },
+	{ MATCH_TOWN_UNWANTED_MONTHS,         "unwanted",        0, FOR_TOWN,
+	                                      "=[value] for matching months you are unwanted in town due to bribe" },
+
+	//Industries
+	{ MATCH_INDUSTRY_PRODUCTION,          "production",       0, FOR_INDUSTRY,
+	                                      "=[value] for matching industry production last month" },
+	{ MATCH_INDUSTRY_PRODUCTION_THIS,     "thisproduction",   0, FOR_INDUSTRY,
+	                                      "=[value] for matching industry production this month" },
+	{ MATCH_INDUSTRY_PERCENT,             "percent",          0, FOR_INDUSTRY,
+	                                      "=[value] for percent transported last month" },
+	{ MATCH_INDUSTRY_PERCENT_THIS,        "thispercent",      0, FOR_INDUSTRY,
+	                                      "=[value] for percent transported this month" },
+
+};
+
+/** Invalid commands */
+const StringInfo<VehicleCommand>  INVALID_COMMAND_VEHICLE  = { VEHICLE_INVALID_COMMAND, "", 0, 0, "" };
+const StringInfo<TownCommand>     INVALID_COMMAND_TOWN     = { TOWN_INVALID_COMMAND, "", 0, 0, "" };
+const StringInfo<IndustryCommand> INVALID_COMMAND_INDUSTRY = { INDUSTRY_INVALID_COMMAND, "", 0, 0, "" };
+
+/** Invalid match */
+const StringInfo<MatchType> INVALID_MATCH = { MATCH_INVALID, "", 0, 0, "" };
+
+/**
+ * Change a string into its monetary representation.
+ * @param *value the variable a successfull conversion will be put in
+ * @param *arg the string to be converted
+ * @return Return true on success or false on failure
+ */
+bool GetArgumentMoney(Money *value, const char *arg)
+{
+	//TODO: perform conversion between currencies
+	char *endptr;
+
+	*value = strtoull(arg, &endptr, 0);
+	return arg != endptr;
+}
+
+/**
+ Generic numeric match template subroutine,
+ compare original value with target value using given compare type
+ @param value Original value
+ @param subtype Type of match
+ @param target_value Value to compare with
+ @return true in succesful match, false otherwise
+*/
+template<class X> bool NumericMatch (const X value, MatchSubtype subtype, const X target_value)
+{
+	switch (subtype) {
+		case MATCH_EQUAL: return (value == target_value);
+		case MATCH_NOT_EQUAL: return (value != target_value);
+		case MATCH_LESS: return (value < target_value);
+		case MATCH_LESS_OR_EQUAL: return (value <= target_value);
+		case MATCH_GREATER_OR_EQUAL: return (value >= target_value);
+		case MATCH_GREATER: return (value > target_value);
+		default: NOT_REACHED(); break;
+	}
+	return false;
+}
+
+/**
+ Perform numeric match, compare original value with target value using given compare type
+ @param value Original value
+ @param subtype Type of match
+ @param target_value_str Value to compare with, in string form
+*/
+bool NumericValueSubMatch (uint32 value, MatchSubtype subtype, const char *target_value_str)
+{
+	uint32 target_value;
+	if (!GetArgumentInteger(&target_value, target_value_str)) return false;
+	return NumericMatch(value, subtype, target_value);
+}
+
+/**
+ Perform money match, compare original value with target value using given compare type
+ @param value Original value
+ @param subtype Type of match
+ @param target_value_str Value to compare with, in string form
+*/
+bool MoneyValueSubMatch (Money value, MatchSubtype subtype, const char *target_value_str)
+{
+	Money target_value;
+	if (!GetArgumentMoney(&target_value, target_value_str)) return false;
+	return NumericMatch(value, subtype, target_value);
+}
+
+/**
+ Perform lexicographical case insensitive string match,
+ compare original value with target value using given compare type
+ @param value Original value
+ @param subtype Type of match
+ @param target_value_str Value to compare with
+*/
+bool StringValueSubMatch (const char *value, MatchSubtype subtype, const char *target_value)
+{
+	int res = strcasecmp(value, target_value);
+	return NumericMatch(res, subtype, 0);
+}
+
+/**
+ Return number of wagons in train.
+ Engine is algo counted as wagon and for multi-part wagons or engines, each part is counted.
+ @param v Train to examine
+*/
+int CountWagons(const Vehicle *v) {
+	int num = 0;
+	while (v) {
+		num++;
+		v = v->Next();
+	}
+	return num;
+}
+
+/**
+ Check if given vehicle matches, considering given match type, subtype and ID
+ @param v Vehicle to check
+ @param m MatchInfo to match
+*/
+bool VehicleMatches(const Vehicle *v, MatchInfo *m)
+{
+	if (m->next) {
+		//Next match in chain
+		if (!VehicleMatches(v, m->next)) return false;
+	}
+	switch (m->type) {
+		case MATCH_ALL: return true;
+		case MATCH_CRASHED: return (v->vehstatus & VS_CRASHED) == VS_CRASHED;
+		case MATCH_BROKEN: return (v->breakdown_ctr != 0);
+		case MATCH_IN_DEPOT: return v->IsInDepot();
+		case MATCH_SERVICE: return NumericValueSubMatch(v->service_interval, m->subtype, m->id);
+		case MATCH_SPEED: return NumericValueSubMatch(v->cur_speed, m->subtype, m->id);
+		case MATCH_ORDERS: return NumericValueSubMatch(v->GetNumOrders(), m->subtype, m->id);
+		case MATCH_AGE: return NumericValueSubMatch(v->age / 365, m->subtype, m->id);
+		case MATCH_BREAKDOWNS: return NumericValueSubMatch(v->breakdowns_since_last_service, m->subtype, m->id);
+		case MATCH_MAXSPEED: {
+			if (v->type == VEH_TRAIN) return NumericValueSubMatch(Train::From(v)->vcache.cached_max_speed, m->subtype, m->id);
+			else return NumericValueSubMatch(v->vcache.cached_max_speed, m->subtype, m->id);
+		}
+		case MATCH_LENGTH: return NumericValueSubMatch((Train::From(v)->gcache.cached_total_length + 15) / 16, m->subtype, m->id);
+		case MATCH_WAGONS: {
+			assert(v->type == VEH_TRAIN);
+			int num_wagons = CountWagons(v);
+			return NumericValueSubMatch(num_wagons, m->subtype, m->id);
+		}
+		case MATCH_GENERIC: return NumericValueSubMatch(v->unitnumber, MATCH_EQUAL, m->id);
+		case MATCH_PROFIT: return MoneyValueSubMatch(v->profit_this_year + v->profit_last_year, m->subtype, m->id);
+		case MATCH_PROFIT_THIS: return MoneyValueSubMatch(v->profit_this_year, m->subtype, m->id);
+		case MATCH_PROFIT_LAST: return MoneyValueSubMatch(v->profit_last_year, m->subtype, m->id);
+		case MATCH_GROUP: {
+			if (!Group::IsValidID(v->group_id)) return false; //No group
+			char buf[ICON_MAX_STREAMSIZE];
+
+			//Get string (name) from group
+			const Group *g = Group::Get(v->group_id);
+			assert(g);
+			SetDParam(0, g->index);
+			GetString(buf, STR_GROUP_NAME, lastof(buf));
+
+			return StringValueSubMatch(buf, m->subtype, m->id);
+		}
+		default: NOT_REACHED(); break;
+	}
+	return false;
+}
+
+/**
+ Get name of given town
+ @param t town to query
+*/
+const char *TownName(const Town *t) {
+	static const int len = 64;
+	static char town_name[len];
+
+	SetDParam(0, t->index);
+	GetString(town_name, STR_TOWN_NAME, &town_name[len - 1]);
+	return town_name;
+}
+
+/**
+ Check if given town matches, considering given match type, subtype and ID
+ @param v Town to check
+ @param m MatchInfo to match
+*/
+bool TownMatches(const Town *t, MatchInfo *m)
+{
+	if (m->next) {
+		//Next match in chain
+		if (!TownMatches(t, m->next)) return false;
+	}
+	bool have_company = Company::IsValidID(_local_company);
+	switch (m->type) {
+		case MATCH_TOWN_POPULATION: return NumericValueSubMatch(t->cache.population, m->subtype, m->id);
+		case MATCH_TOWN_HOUSES: return NumericValueSubMatch(t->cache.num_houses, m->subtype, m->id);
+		case MATCH_TOWN_RATING: {
+			//Does make sense only if own company exists
+			if (!Company::IsValidID(_local_company)) return false;
+			return NumericValueSubMatch(t->ratings[_local_company], m->subtype, m->id);
+		}
+		case MATCH_TOWN_NOISE: return NumericValueSubMatch(t->noise_reached, m->subtype, m->id);
+		case MATCH_TOWN_NOISE_REMAIN: return NumericValueSubMatch(t->MaxTownNoise()-t->noise_reached, m->subtype, m->id);
+		case MATCH_TOWN_NOISE_MAX: return NumericValueSubMatch(t->MaxTownNoise(), m->subtype, m->id);
+		case MATCH_TOWN_FUNDING: return NumericValueSubMatch(t->fund_buildings_months, m->subtype, m->id);
+		case MATCH_TOWN_ROADWORKS: return NumericValueSubMatch(t->road_build_months, m->subtype, m->id);
+		case MATCH_TOWN_EXCLUSIVE_COMPANY: {
+			if (!t->exclusive_counter) return false;
+			return NumericValueSubMatch(t->exclusivity, m->subtype, m->id);
+		}
+		case MATCH_TOWN_EXCLUSIVE_MONTHS: {
+			return NumericValueSubMatch(t->exclusive_counter, m->subtype, m->id);
+		}
+		case MATCH_TOWN_EXCLUSIVE_MY_MONTHS: {
+			if (!have_company) return false;
+			if (t->exclusivity != _local_company) return false;
+			return NumericValueSubMatch(t->exclusive_counter, m->subtype, m->id);
+		}
+		case MATCH_TOWN_EXCLUSIVE_OTHERS_MONTHS: {
+			if (!have_company) return false;
+			if (t->exclusivity == _local_company) return false;
+			if (t->exclusivity == INVALID_COMPANY) return false;
+			return NumericValueSubMatch(t->exclusive_counter, m->subtype, m->id);
+		}
+		case MATCH_TOWN_STATUE: {
+			if (!have_company) return false;
+			return HasBit(t->statues, _local_company);
+		}
+		case MATCH_TOWN_NO_STATUE: {
+			if (!have_company) return false;
+			return !(HasBit(t->statues, _local_company));
+		}
+		case MATCH_TOWN_UNWANTED_MONTHS: {
+			if (!have_company) return false;
+			return NumericValueSubMatch(t->unwanted[_local_company], m->subtype, m->id);
+		}
+		case MATCH_GENERIC: {
+			int n_id = atoi(m->id);
+			return (stricmp(TownName(t), m->id) == 0) || (t->index == n_id);
+		}
+		case MATCH_ALL: return true;
+		default: NOT_REACHED(); break;
+	}
+	return false;
+}
+
+/**
+ Check if given industry matches, considering given match type, subtype and ID
+ @param i Industry to check
+ @param m MatchInfo to match
+*/
+bool IndustryMatches(const Industry *i, MatchInfo *m)
+{
+	if (m->next) {
+		//Next match in chain
+		if (!IndustryMatches(i, m->next)) return false;
+	}
+	assert(i->town);
+	switch (m->type) {
+		case MATCH_GENERIC: {
+			int n_id = atoi(m->id);
+			return (stricmp(TownName(i->town), m->id) == 0) || (i->index == n_id);
+		}
+		case MATCH_ALL: return true;
+		case MATCH_INDUSTRY_PRODUCTION: {
+			int production = i->last_month_production[0] + i->last_month_production[1];
+			return NumericValueSubMatch(production, m->subtype, m->id);
+		}
+		case MATCH_INDUSTRY_PERCENT: {
+			int production = i->last_month_production[0] + i->last_month_production[1];
+			int transport = i->last_month_transported[0] + i->last_month_transported[1];
+			return NumericValueSubMatch(production?(transport*100/production):0, m->subtype, m->id);
+		}
+		case MATCH_INDUSTRY_PRODUCTION_THIS: {
+			int production = i->this_month_production[0] + i->this_month_production[1];
+			return NumericValueSubMatch(production, m->subtype, m->id);
+		}
+		case MATCH_INDUSTRY_PERCENT_THIS: {
+			int production = i->this_month_production[0] + i->this_month_production[1];
+			int transport = i->this_month_transported[0] + i->this_month_transported[1];
+			return NumericValueSubMatch(production?(transport*100/production):0, m->subtype, m->id);
+		}
+		default: NOT_REACHED(); break;
+	}
+	return false;
+}
+
+/**
+ Perform command on given town
+ @param v Target town of command
+ @param command Command to make
+ @param argc Number of extra parameters to command
+ @param argv Extra command parameters, if any
+*/
+int DoTownCommand(Town *t, TownCommand command, int argc, char **argv)
+{
+	switch (command) {
+		// Count towns
+		case TOWN_COUNT: return 1;
+		case TOWN_CENTER: {
+			ScrollMainWindowToTile(t->xy);
+			return 1;
+		}
+		case TOWN_PRINT: {
+			IConsolePrintF(CC_DEFAULT, "%-20s  (%d)", TownName(t), t->cache.population);
+			return 1;
+		}
+		case TOWN_INFO: {
+			IConsolePrintF(CC_DEFAULT, "ID: %4d %-20s, population: %4d houses: %4d%s", t->index, TownName(t), t->cache.population, t->cache.num_houses, t->larger_town?" (Larger town)":"");
+			const char *layout_str = "?";
+			switch(t->layout) {
+				case TL_ORIGINAL: layout_str = "original"; break;
+				case TL_BETTER_ROADS: layout_str = "better roads"; break;
+				case TL_2X2_GRID: layout_str = "2x2"; break;
+				case TL_3X3_GRID: layout_str = "3x3"; break;
+				case TL_RANDOM: layout_str = "random"; break;
+				default: break; //Unknown
+			};
+			IConsolePrintF(CC_DEFAULT, "  Noise: %d/%d, Road layout: %s", t->noise_reached, t->MaxTownNoise(), layout_str);
+			if (t->fund_buildings_months) IConsolePrintF(CC_DEFAULT, "  Fund buildings : %d months.", t->fund_buildings_months);
+			if (t->road_build_months) IConsolePrintF(CC_DEFAULT, " Road reconstruction : %d months.", t->road_build_months);
+
+			const Company *c;
+			FOR_ALL_COMPANIES(c) {
+				int i = c->index;
+				if ((HasBit(t->have_ratings, i) || t->exclusivity == i || HasBit(t->statues, i))) {
+					IConsolePrintF(CC_DEFAULT, " Company %2d : rating %d%s%s%s", i, t->ratings[i],
+					               (t->exclusivity == i)?" (EXCLUSIVE)":"", t->unwanted[i]?" (UNWANTED)":"", HasBit(t->statues, i)?" (STATUE)":"");
+					if (t->exclusivity == i) IConsolePrintF(CC_DEFAULT, "  Exclusivity expires in %d months", t->exclusive_counter);
+					if (t->unwanted[i]) IConsolePrintF(CC_DEFAULT, "  Unwanted for %d months", t->unwanted[i]);
+				}
+			}
+			return 1;
+		}
+		case TOWN_OPEN: {
+			ShowTownViewWindow(t->index);
+			return 1;
+		}
+		case TOWN_OPEN_AUTH: {
+			ShowTownAuthorityWindow(t->index);
+			return 1;
+		}
+		case TOWN_EXPAND: {
+			//assert(_game_mode == GM_EDITOR);
+			int rep = 1;
+			if (argc) rep=atoi(argv[0]);
+			for (int i = 0;i < rep; i++) GrowTown(t);
+			return 1;
+		}
+		case TOWN_DELETE: {
+			//assert(_game_mode == GM_EDITOR);
+			delete t;
+			return 1;
+		}
+		case TOWN_ACTION_AD_SMALL:
+		case TOWN_ACTION_AD_MEDIUM:
+		case TOWN_ACTION_AD_LARGE:
+		case TOWN_ACTION_ROAD:
+		case TOWN_ACTION_STATUE:
+		case TOWN_ACTION_FUND:
+		case TOWN_ACTION_EXCLUSIVE:
+		case TOWN_ACTION_BRIBE:
+		{
+			DoCommandP(t->xy, t->index, command - TOWN_ACTION_0, CMD_DO_TOWN_ACTION | CMD_MSG(STR_ERROR_CAN_T_DO_THIS));
+			return 1;
+		}
+		default: NOT_REACHED(); break;
+	}
+	return 0;
+}
+
+void ShowIndustryViewWindow(int industry);
+
+/**
+ Perform command on given industry
+ @param v Target industry of command
+ @param command Command to make
+ @param argc Number of extra parameters to command
+ @param argv Extra command parameters, if any
+*/
+int DoIndustryCommand(const Industry *i, IndustryCommand command, int argc, char **argv)
+{
+	switch (command) {
+		// Count industries
+		case INDUSTRY_COUNT: return 1;
+		// Center view on vehicle
+		case INDUSTRY_CENTER: {
+			ScrollMainWindowToTile(i->location.tile);
+			return 1;
+		}
+		case INDUSTRY_INFO: {
+			//General information
+			IConsolePrintF(CC_DEFAULT, "ID: %d Town: %-20s", i->index, TownName(i->town));
+			IConsolePrintF(CC_DEFAULT, "  Size: %d x %d", i->location.w, i->location.h);
+			char cargo_name[512];
+			//Produced cargo details
+			for (int cp = 0; cp < 2; cp++) {
+				if (i->produced_cargo[cp] == CT_INVALID) continue;
+				const CargoSpec *cs = CargoSpec::Get(i->produced_cargo[cp]);
+				GetString(cargo_name, cs->name, lastof(cargo_name));
+				IConsolePrintF(CC_DEFAULT, "  Cargo produced: %s (%d per month, %d waiting)", cargo_name, i->production_rate[cp], i->produced_cargo_waiting[cp]);
+				int this_prod = i->this_month_production[cp];
+				int this_tran = i->this_month_transported[cp];
+				int last_prod = i->last_month_production[cp];
+				int last_tran = i->last_month_transported[cp];
+				IConsolePrintF(CC_DEFAULT, "    This month transported/produced: %d/%d (%d%%)", this_tran, this_prod, this_prod?(this_tran*100/this_prod):0);
+				IConsolePrintF(CC_DEFAULT, "    Last month transported/produced: %d/%d (%d%%)", last_tran, last_prod, last_prod?(last_tran*100/last_prod):0);
+			}
+			//Accepted cargo details
+			IConsolePrintF(CC_DEFAULT, "  General production level: %d", i->prod_level);
+			for (int ca = 0; ca < 3; ca++) {
+				if (i->accepts_cargo[ca] == CT_INVALID) continue;
+				const CargoSpec *cs = CargoSpec::Get(i->accepts_cargo[ca]);
+				GetString(cargo_name, cs->name, lastof(cargo_name));
+				IConsolePrintF(CC_DEFAULT, "  Cargo accepted: %s (waiting %d)", cargo_name, i->incoming_cargo_waiting[ca]);
+			}
+			return 1;
+		}
+		//Open window with industry
+		case INDUSTRY_OPEN: {
+			ShowIndustryViewWindow(i->index);
+			return 1;
+		}
+		default: NOT_REACHED(); break;
+	}
+	return 0;
+}
+
+/**
+ Perform command on given vehicle
+ @param v Target vehicle of command
+ @param command Command to make
+ @param argc Number of extra parameters to command
+ @param argv Extra command parameters, if any
+*/
+int DoVehicleCommand(const Vehicle *v, VehicleCommand command, int argc, char **argv)
+{
+	int cmd_code = 0;
+	int32 num_orders = 1;
+	switch (command) {
+		// Count vehicles
+		case VEHICLE_COUNT: return 1;
+		// Open vehicle window
+		case VEHICLE_OPEN: {
+			ShowVehicleViewWindow(v);
+			return 1;
+		}
+		// Set service interval
+		case VEHICLE_INTERVAL: {
+			int32 new_interval;
+			assert(argc);
+			if (!GetArgumentSignedInteger(&new_interval, argv[0])) return 0;
+			new_interval = GetServiceIntervalClamped(new_interval, v->owner);
+			if (new_interval == v->service_interval) return 0; // No change
+			DoCommandP(v->tile, v->index, new_interval, CMD_CHANGE_SERVICE_INT | CMD_MSG(STR_ERROR_CAN_T_CHANGE_SERVICING));
+			return 1;
+		}
+		// Center view on vehicle
+		case VEHICLE_CENTER: {
+			ScrollMainWindowTo(v->x_pos, v->y_pos);
+			return 1;
+		}
+		// Print train wagon info in console
+		case TRAIN_WAGON_INFO: {
+			assert(v->type == VEH_TRAIN);
+			IConsolePrintF(CC_DEFAULT, "Train #%4d wagons", v->unitnumber);
+			const Train *w = Train::From(v);
+			int i = 0;
+			while (w) {
+				int cargo = w->cargo_type;
+				char cargo_name[512];
+				i++;
+				const CargoSpec *cs = CargoSpec::Get(cargo);
+				GetString(cargo_name, cs->name, lastof(cargo_name));
+
+				IConsolePrintF(CC_DEFAULT, "%2d,  Cargo capacity: %d (%s),  Max speed: %d km/h %s", i, w->cargo_cap, cargo_name, w->vcache.cached_max_speed, w->IsWagon() ? "" : " (engine)");
+				w = w->Next();
+			}
+			return 1;
+		}
+		// Print vehicle info in console
+		case VEHICLE_INFO: {
+			IConsolePrintF(CC_DEFAULT, "#%4d, Location: [%d, %d, %d]%s%s%s%s", v->unitnumber, v->x_pos, v->y_pos, v->z_pos,
+					(v->vehstatus & VS_STOPPED) ? " (STOPPED)" : "",
+					(v->vehstatus & VS_CRASHED) ? " (CRASHED)" : "",
+					(v->breakdown_ctr != 0) ? " (BROKEN)" : "",
+					v->IsInDepot() ? " (IN DEPOT)" : "");
+			IConsolePrintF(CC_DEFAULT, "      Age: %d/%d years", v->age / 365, v->max_age / 365);
+			if (v->type == VEH_TRAIN) {
+				const Train *tr_v = Train::From(v);
+				IConsolePrintF(CC_DEFAULT, "      Speed: %d/%d km/h, Orders: %d", v->cur_speed, tr_v->vcache.cached_max_speed, v->GetNumOrders());
+				IConsolePrintF(CC_DEFAULT, "      Length: %d tiles, Power: %d hp,  Weight: %d t", (tr_v->gcache.cached_total_length+15)/16, tr_v->gcache.cached_power, tr_v->gcache.cached_weight);
+			} else {
+				int speed_factor = 1;
+				if (v->type != VEH_AIRCRAFT) speed_factor = 2;
+				IConsolePrintF(CC_DEFAULT, "      Speed: %d/%d km/h, Orders: %d", v->cur_speed / speed_factor, v->vcache.cached_max_speed / speed_factor, v->GetNumOrders());
+			}
+			IConsolePrintF(CC_DEFAULT, "      Service interval: %d days/%%, Breakdowns: %d (reliability %d%%)", v->service_interval, v->breakdowns_since_last_service, (100 * (v->reliability>>8) >> 8));
+			return 1;
+		}
+		// Skip to next order(s)
+		case VEHICLE_SKIP_ORDER: {
+			if (argc) {
+				if (tolower(argv[0][0]) == 'r') num_orders = InteractiveRandom(); // Modulo later will correct this
+				else if (!GetArgumentSignedInteger(&num_orders, argv[0])) num_orders = 1;
+			}
+			//No break or return here, fall through
+		}
+		// Skip to next order if vehicle is stopped in station
+		// (Or fall through from generic skip order)
+		case VEHICLE_LEAVE_STATION: {
+			if (command == VEHICLE_LEAVE_STATION && v->current_order.GetType() != OT_LOADING) return 0;
+			if (num_orders == 0) return 0; // Skip 0 orders
+			int new_order = (v->current_order.index + num_orders) % v->GetNumOrders();
+			if (new_order < 0) new_order = v->GetNumOrders(); //If skipped before first, go to last
+			assert (new_order >= 0);
+			DoCommandP(v->tile, v->index, new_order, CMD_SKIP_TO_ORDER | CMD_MSG(STR_ERROR_CAN_T_SKIP_ORDER));
+			return 1;
+		}
+		// Ignore signals
+		case TRAIN_IGNORE: {
+			DoCommandP(v->tile, v->index, 0, CMD_FORCE_TRAIN_PROCEED | CMD_MSG(STR_ERROR_CAN_T_MAKE_TRAIN_PASS_SIGNAL));
+			return 1;
+		}
+		// Turn vehicle around
+		case VEHICLE_TURN: {
+			switch (v->type) {
+				case VEH_TRAIN:    cmd_code = CMD_REVERSE_TRAIN_DIRECTION | CMD_MSG(STR_ERROR_CAN_T_REVERSE_DIRECTION_TRAIN); break;
+				case VEH_ROAD:     cmd_code = CMD_TURN_ROADVEH | CMD_MSG(STR_ERROR_CAN_T_MAKE_ROAD_VEHICLE_TURN); break;
+				default: NOT_REACHED(); break;
+			}
+			DoCommandP(v->tile, v->index, 0, cmd_code);
+			return 1;
+		}
+		// Stop vehicle
+		case VEHICLE_STOP:
+		// Start vehicle
+		case VEHICLE_START: {
+			if ((command == VEHICLE_STOP) && (v->vehstatus & VS_STOPPED)) return 0;
+			if ((command == VEHICLE_START) && !(v->vehstatus & VS_STOPPED)) return 0;
+			DoCommandP(v->tile, v->index, 0, CMD_START_STOP_VEHICLE);
+			return 1;
+		}
+		// Send vehicle to depot
+		case VEHICLE_DEPOT:
+		// Send vehicle for servicing
+		case VEHICLE_SERVICE:
+		// Cancel sending vehicle to depot
+		case VEHICLE_UNDEPOT:
+		// Cancel sending vehicle for servicing
+		case VEHICLE_UNSERVICE: {
+			if ((v->vehstatus & VS_STOPPED) && v->IsInDepot()) return 0; //Already in depot
+			if (v->current_order.IsType(OT_GOTO_DEPOT)) {
+				//Already heading to a depot (either for service or for stopping)
+				bool halt_in_depot = v->current_order.GetDepotActionType() & ODATFB_HALT;
+				if (halt_in_depot) {
+					if (command == VEHICLE_DEPOT) return 0;
+					if (command == VEHICLE_UNSERVICE) return 0;
+				} else {
+					if (command == VEHICLE_UNDEPOT) return 0;
+					if (command == VEHICLE_SERVICE) return 0;
+				}
+			} else {
+				//Not heading to a depot at all - nothing to cancel
+				if ((command == VEHICLE_UNDEPOT) || (command == VEHICLE_UNSERVICE)) {
+					return 0;
+				}
+			}
+			cmd_code = GetCmdSendToDepot(v);
+			DoCommandP(v->tile, v->index, (command == VEHICLE_SERVICE || command == VEHICLE_UNSERVICE) ? DEPOT_SERVICE : 0, cmd_code);
+			return 1;
+		}
+		// Clone vehicle
+		case VEHICLE_CLONE:
+		// Clone vehicle with shared orders
+		case VEHICLE_CLONE_SHARED: {
+			uint32 num_clones = 1;
+			if (argc) if (!GetArgumentInteger(&num_clones, argv[0])) num_clones = 1;
+			for (uint32 i = 0; i < num_clones; i++) DoCommandP(v->tile, v->index, (command == VEHICLE_CLONE_SHARED) ? 1 : 0, CMD_CLONE_VEHICLE);
+			return 1;
+		}
+		// Sell one or more train wagons. Wagons are indexed from 1 (0 is head engine). Articulated parts are not counted
+		case TRAIN_SELL_WAGON: {
+			assert(v->type == VEH_TRAIN);
+			assert(argc);
+			uint32 min;
+			if (!GetArgumentInteger(&min, argv[0])) return 0;
+			uint32 max = min;
+			if (argc >= 2) {
+				if (!GetArgumentInteger(&max, argv[1])) return 0;
+				if (max < min) return 0;
+			}
+
+			const Vehicle *w = v;
+
+			// Note: if maximal number of wagons in train is raised, this should be raised too.
+			// If neglecting, crashes will not happen, but it will be impossible to sell more
+			// than 100 wagons at once
+			VehicleID to_be_sold[100];
+			uint num_to_sell = 0;
+
+			const Train *tr_v = Train::From(v);
+			for (uint i = 0; i <= max; i++) {
+				// Skip articulated parts
+				while (tr_v && tr_v->IsArticulatedPart()) tr_v = tr_v->Next();
+				// End of train
+				if (!tr_v) break;
+				// Check if this is one to sell
+				if (i >= min) {
+					// Add to sell list
+					to_be_sold[num_to_sell] = tr_v->index;
+					num_to_sell;
+					if (num_to_sell >= lengthof(to_be_sold)) break;
+				}
+				tr_v = tr_v->Next();
+			}
+
+			// Sell all vehicles in sell list
+			for (uint i = 0; i < num_to_sell; i++) DoCommandP(w->tile, to_be_sold[i], 0, GetCmdSellVeh(VEH_TRAIN));
+			return 1;
+		}
+		// Sell vehicle
+		case VEHICLE_SELL: {
+			cmd_code = GetCmdSellVeh(v);
+			DoCommandP(v->tile, v->index, (v->type == VEH_TRAIN) ? 1 : 0, cmd_code);
+			return 1;
+		}
+		default: NOT_REACHED(); break;
+	}
+	return 0;
+}
+
+/**
+ Return true, if first string is a prefix (case insensitive) of second string
+ @param s1 first string
+ @param s2 second string
+*/
+bool str_isprefix(const char *s1, const char *s2)
+{
+	int len = 0;
+	while (s1[len] && s2[len] && (tolower(s1[len]) == tolower(s2[len]))) len++;
+
+	if (!s2[len] && s1[len]) return false; //Second string is prefix for first
+	if (len>0 && !s1[len]) return true;    //First string is prefix for (or equal to) second
+	return false;
+}
+
+/**
+ Get command or match type based on it's ID or copy of invalid_value if ID not recognized
+ @param id string to look for
+ @param invalid_value what to return if match not found
+ @param string_array where to look
+ @param array_length length of array
+*/
+template<typename T> const StringInfo<T> GetStringInfo(const char *id,
+ const StringInfo<T> &invalid_value, const StringInfo<T> *string_array, size_t array_length)
+{
+	StringInfo<T> cmd = invalid_value;
+	bool unique_prefix = true;
+	for (uint i = 0; i < array_length; i++) {
+		int real_i = i;
+		//Skip through alias(es) until reaching the command
+		while (string_array[real_i].id == LIST_ALIAS) real_i++;
+		if (stricmp(id, string_array[i].name) == 0) return string_array[real_i];
+		/*
+		 * If same command as already found, skip match
+		 * (to avoid 'disambiguating' between 'center' and 'centre')
+		 */
+		if (str_isprefix(id, string_array[i].name) && string_array[real_i].id != cmd.id) {
+			// Case-insensitive prefix match
+			if (cmd.id) unique_prefix = false; //Ambiguous case-insensitive prefix match
+			cmd = string_array[real_i];
+			continue;
+		}
+	}
+	if (cmd.id && unique_prefix) return cmd;
+	return invalid_value;
+}
+
+/**
+ Get vehicle command based on it's ID or INVALID_COMMAND_VEHICLE if ID not recognized
+ @param id string to look for
+*/
+const StringInfo<VehicleCommand> GetVehicleCommand(const char *id) {
+ return GetStringInfo<VehicleCommand>(id, INVALID_COMMAND_VEHICLE, veh_commands, lengthof(veh_commands));
+}
+
+/**
+ Get town command based on it's ID or INVALID_COMMAND_TOWN if ID not recognized
+ @param id string to look for
+*/
+const StringInfo<TownCommand> GetTownCommand(const char *id) {
+ return GetStringInfo<TownCommand>(id, INVALID_COMMAND_TOWN, town_commands, lengthof(town_commands));
+}
+
+/**
+ Get industry command based on it's ID or INVALID_COMMAND_INDUSTRY if ID not recognized
+ @param id string to look for
+*/
+const StringInfo<IndustryCommand> GetIndustryCommand(const char *id) {
+ return GetStringInfo<IndustryCommand>(id, INVALID_COMMAND_INDUSTRY, ind_commands, lengthof(ind_commands));
+}
+
+/**
+ Get match type based on it's ID or INVALID_MATCH if ID not recognized
+ @param id string to look for
+*/
+const StringInfo<MatchType> GetMatchType(const char *id) {
+ return GetStringInfo<MatchType>(id, INVALID_MATCH, match_info, lengthof(match_info));
+}
+
+/**
+ Given name of the group, return pointer to it, or return NULL if group is not found or is owned by someone else.
+ First it tries to match case sensitively, if it fails,
+ it tries case-insensitive match and return it only if the match is unambigous.
+ For example, matching of 'XYZ' against group 'xyz' and 'Xyz' will fail.
+ @param name Name of the group
+*/
+const Group* GetGroupByName(const char *name)
+{
+	const Group *g;
+	const Group *nocase_g = NULL;
+	const Group *prefix_g = NULL;
+	bool unique_nocase = true;
+	bool unique_prefix = true;
+	char buf[512];
+
+	FOR_ALL_GROUPS(g) {
+		if (g->owner == _local_company) {
+			SetDParam(0, g->index);
+			GetString(buf, STR_GROUP_NAME, lastof(buf));
+		}
+		if (strcmp(buf, name) == 0) return g;           // Case-sensitive match
+		if (stricmp(buf, name) == 0) {                  // Case-insensitive match
+			if (nocase_g) unique_nocase = false;    // Ambiguous case-insensitive match
+			nocase_g = g;
+			continue;
+		}
+		if (str_isprefix(name, buf)) {                  // Case-insensitive prefix match
+			if (prefix_g) unique_prefix = false;    //Ambiguous case-insensitive prefix match
+			prefix_g = g;
+			continue;
+		}
+	}
+
+	if (nocase_g && unique_nocase) return nocase_g;
+	if (prefix_g && unique_prefix) return prefix_g;
+	return NULL;
+}
+
+/**
+ Print generic help for type of matches in commands
+ @param m_info Pointer to MatchInfo array
+ @param m_len Number of matches in array
+ @param target_type Name of the target for these matches
+ @param mask Mask for filtering matches
+*/
+void ConMatchTypeHelp(const StringInfo<MatchType> *m_info, size_t m_len, const char *target_type, int mask) {
+	for (uint mi = 0; mi < m_len; mi++) {
+		if (!(m_info[mi].req & mask)) {
+			// Not for this object type.
+			continue;
+		}
+		if (m_info[mi].req & USE_PRINTF) {
+			char buf[ICON_MAX_STREAMSIZE];
+			seprintf(buf, lastof(buf), m_info[mi].help, target_type);
+			IConsoleHelpF("  %s%s", m_info[mi].name, buf);
+		} else {
+			IConsoleHelpF("  %s%s", m_info[mi].name, m_info[mi].help);
+		}
+	}
+}
+
+/**
+ Print generic help for town/industry/vehicle commands
+ @param target_type Name of the target for these commands
+ @param argv0 name of command for which the help is
+ @param t_commands Pointer to array with Stringinfo<T> records for commandes
+ @param num_commands Number of commands in array
+ @param mask Mask for filtering commands
+*/
+template<typename T> void ConCommandsHelp(const char *target_type, const char *argv0,
+ const StringInfo<T> *t_commands, size_t num_commands, int mask) {
+	IConsoleHelpF("Invoke command on specified %s(s). Usage: '%s <identifier> <command> [<optional command parameters...>]'", target_type, argv0);
+	IConsoleHelp("Command can be:");
+
+	// Help for commands
+	char alias[ICON_MAX_STREAMSIZE];
+	alias[0] = 0;
+	for (uint i = 0; i < num_commands; i++) {
+
+		if (t_commands[i].id == LIST_ALIAS) {
+			if (!alias[0]) strecpy(alias, " (Aliases: ", lastof(alias));
+			else strecat(alias, ", ", lastof(alias));
+			strecat(alias, t_commands[i].name, lastof(alias));
+		} else {
+			if (!(t_commands[i].req & mask)) {
+				// Not for this object type. Reset list of aliases
+				alias[0] = 0;
+				continue;
+			}
+			if (alias[0]) {
+				strecat(alias, ")", lastof(alias));
+			}
+			IConsoleHelpF("  %-15s %s%s", t_commands[i].name, t_commands[i].help, alias[0] ? alias : "");
+			alias[0] = 0;
+		}
+	}
+
+	IConsoleHelp ("Identifier can be:");
+	// Help for non-numeric match types
+	ConMatchTypeHelp(match_nn_info, lengthof(match_nn_info), target_type, mask);
+
+	IConsoleHelp ("Operators < > <= >= and <> can be also used instead of = for following matches:");
+	// Help for numeric match types
+	ConMatchTypeHelp(match_info, lengthof(match_info), target_type, mask);
+
+	IConsoleHelp ("You can specify multiple match conditions before the command.");
+	IConsoleHelp ("If you use more than one match condition, you have to separate them by 'and' or '&' parameter. Number of match conditions is not limited.");
+}
+
+/**
+ Checks match_id for known match types and subtypes.
+ @param match_id match string
+ @param mask match mask
+ @return NULL, if invalid match is specified, pointer to MatchInfo if valid match found, or match is considered to be generic match
+*/
+MatchInfo* CheckMatch(const char *match_id, int mask) {
+
+	//Default values
+	MatchType match_type = MATCH_GENERIC;
+	MatchSubtype match_subtype = MATCH_NONE;
+	const char *id = match_id;
+
+	// Check for criteria in form of key=value, key<value, key>=value, etc ...
+	size_t keylen = strcspn(match_id, "<>=");
+	if (match_id[keylen] == '=') {
+		// Key=value
+		id = match_id + keylen + 1;
+		match_subtype = MATCH_EQUAL;
+	} else if (match_id[keylen] == '<') {
+		// Key<value or Key<=value
+		id = match_id + keylen + 1;
+		if (match_id[keylen+1] == '=') {
+			match_subtype = MATCH_LESS_OR_EQUAL;
+			id++;
+		} else if (match_id[keylen+1] == '>') {
+			match_subtype = MATCH_NOT_EQUAL;
+			id++;
+		} else {
+			match_subtype = MATCH_LESS;
+		}
+	} else if (match_id[keylen] == '>') {
+		// Key>value or Key>=value
+		id = match_id + keylen + 1;
+		if (match_id[keylen+1] == '=') {
+			match_subtype = MATCH_GREATER_OR_EQUAL;
+			id++;
+		} else {
+			match_subtype = MATCH_GREATER;
+		}
+	}
+
+	if (keylen) {
+		// Criteria in form of key=value, key<value, key>=value .... was specified
+		char match_key[ICON_MAX_STREAMSIZE];
+		strncpy(match_key, match_id, keylen);
+		match_key[keylen] = 0;
+
+		StringInfo<MatchType> match = GetMatchType(match_key);
+
+		// Found some match
+		if (match.id) {
+			// Safety check for correct object type
+			if (!(match.req & mask)) {
+				IConsoleError("You have specified invalid match type for this query.");
+				return NULL;
+			}
+			match_type = match.id;
+		}
+	}
+
+	//Check for special match
+	for (size_t i = 0;i < lengthof(match_nn_info);i++) {
+		if (match_nn_info[i].req & mask) {
+			if (stricmp(match_id, match_nn_info[i].name) == 0) {
+				match_type = match_nn_info[i].id;
+				break;
+			}
+		}
+	}
+	//If no special match is found, keep default generic match
+	return new MatchInfo(match_type, match_subtype, id);
+}
+
+/**
+ Checks argc+argv for known match types and subtypes.
+ @param argc Argument count
+ @param argv Arguments
+ @param mask Match mask
+ @return NULL, if invalid match is specified, pointer to MatchInfo if valid match found, or match is considered to be generic match
+*/
+MatchInfo* CheckMatch(byte &argc, char** &argv, int mask) {
+
+	//Need at least <name> <match> <command>
+	if (argc < 3) return NULL;
+
+	//Skip name of command
+	argv++;
+	argc--;
+	MatchInfo *m = NULL;
+	while (argc) {
+		MatchInfo *tm = CheckMatch(argv[0], mask);
+		if (!tm) {
+			if (m) delete m;
+			return NULL;
+		}
+		tm->next = m;
+		m = tm;
+		argv++;
+		argc--;
+		if (!argc) break; //MAtch not followed by command
+		if (!(stricmp(argv[0], "and") == 0 || stricmp(argv[0], "&") == 0)) break;
+		//Match followed by "and"
+		argv++;
+		argc--;
+	}
+	return m;
+}
+
+/**
+ Perform a town command
+ @param argc Number of arguments
+ @param argv Arguments
+*/
+DEF_CONSOLE_CMD(ConTown)
+{
+	int mask = FOR_TOWN;
+	if (argc == 0) {
+		ConCommandsHelp("town", "town", town_commands, lengthof(town_commands), mask);
+		IConsoleHelpF("You can also use:");
+		IConsoleHelpF(" name of town or ID of town");
+		return true;
+	}
+	if (argc < 3) return false;
+
+	MatchInfo *m = CheckMatch(argc, argv, mask);
+
+	if (!m) return true;
+
+	if (argc == 0) {
+		//Missing command (CMD <match> and <match>)
+		delete m;
+		return false;
+	}
+
+	//Parse command string and get command identifier
+	StringInfo<TownCommand> cmd = GetTownCommand(argv[0]);
+
+	if (!cmd.id) {
+		IConsoleError("You have specified invalid command.");
+		return false;
+	}
+
+	if (argc < 1 + cmd.params) {
+		IConsoleError("This command requires additional parameter(s).");
+		return true;
+	}
+
+	if (_game_mode != GM_EDITOR && (cmd.req & IN_EDITOR)) {
+		IConsoleError("This command can be used only in scenario editor");
+		//return true;
+	}
+
+	assert(!(cmd.req & IS_ALIAS));
+
+	int affected = 0;
+	int matched = 0;
+
+	//Loop through all towns
+	Town *t;
+	FOR_ALL_TOWNS(t) {
+		if (TownMatches(t, m)) {
+			// Town matches criteria
+			matched++;
+			// Pass rest of parameters to command
+			affected += DoTownCommand(t, cmd.id, argc - 1, argv + 1);
+		}
+	}
+
+	IConsolePrintF(CC_DEFAULT, "Number of towns matched: %d, affected: %d", matched, affected);
+	delete m;
+
+	return true;
+}
+
+/**
+ Perform an industry command
+ @param argc Number of arguments
+ @param argv Arguments
+*/
+DEF_CONSOLE_CMD(ConIndustry)
+{
+	int mask = FOR_INDUSTRY;
+	if (argc == 0) {
+		ConCommandsHelp("industry", "industry", ind_commands, lengthof(ind_commands), mask);
+		IConsoleHelpF("You can also use:");
+		IConsoleHelpF(" name of town, to which the industry belongs, or ID of industry");
+		return true;
+	}
+	if (argc < 3) return false;
+
+	MatchInfo *m = CheckMatch(argc, argv, mask);
+
+	if (!m) return true;
+
+	if (argc == 0) {
+		//Missing command (CMD <match> and <match>)
+		delete m;
+		return false;
+	}
+
+	//Parse command string and get command identifier
+	StringInfo<IndustryCommand> cmd = GetIndustryCommand(argv[0]);
+
+	if (!cmd.id) {
+		IConsoleError("You have specified invalid command.");
+		return false;
+	}
+
+	if (argc < 1 + cmd.params) {
+		IConsoleError("This command requires additional parameter(s).");
+		return true;
+	}
+
+	if (_game_mode != GM_EDITOR && (cmd.req & IN_EDITOR)) {
+		IConsoleError("This command can be used only in scenario editor");
+		//return true;
+	}
+
+	assert(!(cmd.req & IS_ALIAS));
+
+	int affected = 0;
+	int matched = 0;
+
+	//Loop through all industries
+	Industry *i;
+	FOR_ALL_INDUSTRIES(i) {
+		if (IndustryMatches(i, m)) {
+			// Industry matches criteria
+			matched++;
+			// Pass rest of parameters to command
+			affected = DoIndustryCommand(i, cmd.id, argc - 1, argv + 1);
+		}
+	}
+
+	IConsolePrintF(CC_DEFAULT, "Number of industries matched: %d, affected: %d", matched, affected);
+
+	return true;
+}
+
+/**
+ Perform a vehicle command
+ @param argc Number of arguments
+ @param argv Arguments
+ @param vtype Vehicle type to run this command against
+ @param argv0 Name of the command (selfreference for printing help, etc ..)
+*/
+bool ConVehicleCommand(byte argc, char **argv, VehicleType vtype, const char *argv0)
+{
+	int mask;
+	const char *vehicle_name;
+	switch (vtype) {
+		case VEH_TRAIN:    mask = FOR_TRAIN;    vehicle_name = "train";        break;
+		case VEH_ROAD:     mask = FOR_ROAD;     vehicle_name = "road vehicle"; break;
+		case VEH_SHIP:     mask = FOR_SHIP;     vehicle_name = "ship";         break;
+		case VEH_AIRCRAFT: mask = FOR_AIRCRAFT; vehicle_name = "aircraft";     break;
+		case VEH_INVALID:  mask = FOR_VEHICLE;  vehicle_name = "vehicle";      break;
+		default: NOT_REACHED(); return false;
+	}
+
+	if (argc == 0) {
+		ConCommandsHelp(vehicle_name, argv0, veh_commands, lengthof(veh_commands), mask);
+
+		IConsoleHelpF("You can also use:");
+		IConsoleHelpF(" name of group for all %ss from specified group. Can accept unique prefix of group name", vehicle_name);
+		IConsoleHelpF(" %s number for specific %s", vehicle_name, vehicle_name);
+
+		return true;
+	}
+
+	if (!Company::IsValidID(_local_company)) {
+		IConsoleError("You have to own a company to make use of this command.");
+		return true;
+	}
+
+	if (argc < 3) return false;
+
+	MatchInfo *m = CheckMatch(argc, argv, mask);
+
+	if (!m) return true;
+
+	if (argc == 0) {
+		//Missing command (CMD <match> and <match>)
+		delete m;
+		return false;
+	}
+
+	//Parse command string and get command identifier
+	StringInfo<VehicleCommand> cmd = GetVehicleCommand(argv[0]);
+
+	if (!cmd.id) {
+		IConsoleError("You have specified invalid command.");
+		return false;
+	}
+
+	if (argc < 1 + cmd.params) {
+		IConsoleError("This command requires additional parameter(s).");
+		return true;
+	}
+
+	// Safety check for correct vehicle type
+	if (!(cmd.req & mask)) {
+		IConsolePrintF(CC_ERROR, " ERROR: The command you have specified cannot be applied to %s.", vehicle_name);
+		return true;
+	}
+
+	assert(!(cmd.req & IS_ALIAS));
+
+	int affected = 0;
+	int matched = 0;
+
+	VehicleListIdentifier vli;
+	VehicleList sort_list;
+
+	int object_id = 0;
+	int list_type = VL_STANDARD;
+
+	//Check for generic matches and convert them to group matches if appropriate
+	MatchInfo *mx = m;
+	while (mx) {
+		// Try matching group name for generic match
+		if (mx->type == MATCH_GENERIC) {
+			const Group *g = GetGroupByName(mx->id);
+			if (g) {
+				if (list_type == VL_STANDARD) {
+					list_type = VL_GROUP_LIST;
+					object_id = g->index;
+					// Toggle to match all, as the input is already filtered by this group
+					mx->type = MATCH_ALL;
+				} else {
+					mx->type = MATCH_GROUP;
+				}
+			}
+		}
+		mx = mx->next;
+	}
+
+	// Generate list of vehicles
+	GenerateVehicleSortList(&sort_list, vli);
+	//GenerateVehicleSortList(&sort_list, vtype, _local_company, object_id, list_type);
+	uint list_len = sort_list.Length();
+
+	for (uint vi = 0; vi < list_len; vi++) {  // For each vehicle in list
+		const Vehicle *v = sort_list[vi];
+		if (VehicleMatches(v, m)) {
+			// Vehicle matches criteria
+			matched++;
+
+			// Check specific command requirements if necessary:
+
+			// Check for "not crashed"
+			if ((cmd.req & NOT_CRASHED) && (v->vehstatus & VS_CRASHED)) continue;
+			// Check for "is stopped"
+			if ((cmd.req & STOPPED) && !(v->vehstatus & VS_STOPPED)) continue;
+			// Check for "is in depot"
+			if ((cmd.req & IN_DEPOT) && !v->IsInDepot()) continue;
+
+			 //Check vehicle type in case of commands for multiple vehicle types
+			switch (v->type) {
+				case VEH_TRAIN: if (!(cmd.req & FOR_TRAIN)) continue; break;
+				case VEH_ROAD: if (!(cmd.req & FOR_ROAD)) continue; break;
+				case VEH_SHIP: if (!(cmd.req & FOR_SHIP)) continue; break;
+				case VEH_AIRCRAFT: if (!(cmd.req & FOR_AIRCRAFT)) continue; break;
+				default: NOT_REACHED(); break;
+			}
+			// Pass rest of parameters to command
+			affected = DoVehicleCommand(v, cmd.id, argc - 1, argv + 1);
+		}
+	}
+
+	IConsolePrintF(CC_DEFAULT, "Number of %ss matched: %d, affected: %d", vehicle_name, matched, affected);
+
+	return true;
+}
+
+DEF_CONSOLE_CMD(ConTrain)
+{
+	// Call generic vehicle command with "train" specialization
+	return ConVehicleCommand(argc, argv, VEH_TRAIN, "train");
+}
+
+DEF_CONSOLE_CMD(ConRoad)
+{
+	// Call generic vehicle command with "road vehicle" specialization
+	return ConVehicleCommand(argc, argv, VEH_ROAD, "road");
+}
+
+DEF_CONSOLE_CMD(ConShip)
+{
+	// Call generic vehicle command with "ship" specialization
+	return ConVehicleCommand(argc, argv, VEH_SHIP, "ship");
+}
+
+DEF_CONSOLE_CMD(ConAircraft)
+{
+	// Call generic vehicle command with "aircraft" specialization
+	return ConVehicleCommand(argc, argv, VEH_AIRCRAFT, "aircraft");
+}
+
+DEF_CONSOLE_CMD(ConVehicle)
+{
+	// Call generic vehicle command with "all vehicles" specialization
+	return ConVehicleCommand(argc, argv, VEH_INVALID, "vehicle");
+}
+
 DEF_CONSOLE_CMD(ConListSettings)
 {
 	if (argc == 0) {
@@ -1993,7 +3629,6 @@ DEF_CONSOLE_CMD(ConCheckCaches)
 	return true;
 }
 
-#ifdef _DEBUG
 /******************
  *  debug commands
  ******************/
@@ -2004,7 +3639,6 @@ static void IConsoleDebugLibRegister()
 	IConsoleAliasRegister("dbg_echo",       "echo %A; echo %B");
 	IConsoleAliasRegister("dbg_echo2",      "echo %!");
 }
-#endif
 
 /*******************************
  * console command registration
@@ -2050,6 +3684,13 @@ void IConsoleStdLibRegister()
 	IConsoleCmdRegister("list_settings",ConListSettings);
 	IConsoleCmdRegister("gamelog",      ConGamelogPrint);
 	IConsoleCmdRegister("rescan_newgrf", ConRescanNewGRF);
+	IConsoleCmdRegister("train",        ConTrain);
+	IConsoleCmdRegister("aircraft",     ConAircraft);
+	IConsoleCmdRegister("road",         ConRoad);
+	IConsoleCmdRegister("ship",         ConShip);
+	IConsoleCmdRegister("vehicle",      ConVehicle);
+	IConsoleCmdRegister("industry",     ConIndustry);
+	IConsoleCmdRegister("town",         ConTown);
 
 	IConsoleAliasRegister("dir",          "ls");
 	IConsoleAliasRegister("del",          "rm %+");
@@ -2058,6 +3699,7 @@ void IConsoleStdLibRegister()
 	IConsoleAliasRegister("set",          "setting %+");
 	IConsoleAliasRegister("set_newgame",  "setting_newgame %+");
 	IConsoleAliasRegister("list_patches", "list_settings %+");
+	IConsoleAliasRegister("plane",        "aircraft %+");
 	IConsoleAliasRegister("developer",    "setting developer %+");
 
 	IConsoleCmdRegister("list_ai_libs", ConListAILibs);
@@ -2136,9 +3778,7 @@ void IConsoleStdLibRegister()
 #endif /* ENABLE_NETWORK */
 
 	/* debugging stuff */
-#ifdef _DEBUG
 	IConsoleDebugLibRegister();
-#endif
 	IConsoleCmdRegister("dump_command_log", ConDumpCommandLog, nullptr, true);
 	IConsoleCmdRegister("check_caches", ConCheckCaches, nullptr, true);
 

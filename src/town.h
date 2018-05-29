@@ -170,7 +170,7 @@ uint32 GetWorldPopulation();
 
 void UpdateAllTownVirtCoords();
 void ShowTownViewWindow(TownID town);
-void ExpandTown(Town *t);
+bool GrowTown(Town *t);
 
 /**
  * Action types that a company must ask permission for to a town authority.
@@ -234,6 +234,7 @@ void SetTownRatingTestMode(bool mode);
 uint GetMaskOfTownActions(int *nump, CompanyID cid, const Town *t);
 bool GenerateTowns(TownLayout layout);
 const CargoSpec *FindFirstCargoWithTownEffect(TownEffect effect);
+void ShowTownAuthorityWindow(uint town);
 
 /** Town actions of a company. */
 enum TownActions {

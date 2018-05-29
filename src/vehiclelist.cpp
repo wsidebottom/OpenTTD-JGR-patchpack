@@ -121,17 +121,13 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 	const Vehicle *v;
 
 	auto fill_all_vehicles = [&]() {
-		FOR_ALL_VEHICLES(v) {
-			if (!HasBit(v->subtype, GVSF_VIRTUAL) && v->type == vli.vtype && v->owner == vli.company && v->IsPrimaryVehicle()) {
-				*list->Append() = v;
-			}
-		}
+		FOR_ALL_VEHICLES(v) if (!HasBit(v->subtype, GVSF_VIRTUAL) && (v->type == vli.vtype || vli.vtype == VEH_INVALID) && v->owner == vli.company && v->IsPrimaryVehicle()) *list->Append() = v;
 	};
 
 	switch (vli.type) {
 		case VL_STATION_LIST:
 			FOR_ALL_VEHICLES(v) {
-				if (v->type == vli.vtype && v->IsPrimaryVehicle()) {
+				if ((v->type == vli.vtype || vli.vtype == VEH_INVALID) && v->IsPrimaryVehicle()) {
 					const Order *order;
 
 					FOR_VEHICLE_ORDERS(v, order) {
@@ -150,18 +146,14 @@ bool GenerateVehicleSortList(VehicleList *list, const VehicleListIdentifier &vli
 			v = Vehicle::GetIfValid(vli.index);
 			if (v == NULL || v->type != vli.vtype || !v->IsPrimaryVehicle()) return false;
 
-			for (; v != NULL; v = v->NextShared()) {
-				*list->Append() = v;
-			}
+			for (; v != NULL; v = v->NextShared()) *list->Append() = v;
 			break;
 
 		case VL_GROUP_LIST:
 			if (vli.index != ALL_GROUP) {
 				FOR_ALL_VEHICLES(v) {
-					if (!HasBit(v->subtype, GVSF_VIRTUAL) && v->type == vli.vtype && v->IsPrimaryVehicle() &&
-							v->owner == vli.company && GroupIsInGroup(v->group_id, vli.index)) {
-						*list->Append() = v;
-					}
+					if (!HasBit(v->subtype, GVSF_VIRTUAL) && (v->type == vli.vtype || vli.vtype == VEH_INVALID) && v->IsPrimaryVehicle() &&
+							v->owner == vli.company && GroupIsInGroup(v->group_id, vli.index)) *list->Append() = v;
 				}
 				break;
 			}

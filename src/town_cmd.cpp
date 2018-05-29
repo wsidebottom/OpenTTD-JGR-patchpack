@@ -980,12 +980,8 @@ void UpdateTownCargoBitmap()
 	Town *town;
 	_town_cargoes_accepted = 0;
 
-	FOR_ALL_TOWNS(town) {
-		_town_cargoes_accepted |= town->cargo_accepted_total;
-	}
+	FOR_ALL_TOWNS(town) _town_cargoes_accepted |= town->cargo_accepted_total;
 }
-
-static bool GrowTown(Town *t);
 
 static void TownTickHandler(Town *t)
 {
@@ -1652,7 +1648,7 @@ static RoadBits GenRandomRoadBits()
  * @param t town to grow
  * @return true iff something (house, road, bridge, ...) was built
  */
-static bool GrowTown(Town *t)
+bool GrowTown(Town *t)
 {
 	static const TileIndexDiffC _town_coord_mod[] = {
 		{-1,  0},
