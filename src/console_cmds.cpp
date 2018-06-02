@@ -1985,7 +1985,8 @@ enum IndustryCommand {
 	INDUSTRY_CENTER,
 	INDUSTRY_INFO,
 	INDUSTRY_OPEN,
-	INDUSTRY_COUNT
+	INDUSTRY_COUNT,
+	INDUSTRY_DELETE
 };
 
 /**
@@ -2227,6 +2228,8 @@ const StringInfo<IndustryCommand> ind_commands[] = {
 	{ INDUSTRY_COMMAND_ALIAS, "show",                0, 0, "" },
 	{ INDUSTRY_OPEN,          "open",                0, FOR_INDUSTRY,
 	                          "Open industry window" },
+	{ INDUSTRY_DELETE,        "delete",                0, FOR_INDUSTRY,
+	                          "Delete the industry" },
 };
 
 /**
@@ -2722,6 +2725,14 @@ int DoIndustryCommand(const Industry *i, IndustryCommand command, int argc, char
 		//Open window with industry
 		case INDUSTRY_OPEN: {
 			ShowIndustryViewWindow(i->index);
+			return 1;
+		}
+		// Delete the industry
+		case INDUSTRY_DELETE: {
+			//General information
+			IConsolePrintF(CC_DEFAULT, "ID: %d Town: %-20s", i->index, TownName(i->town));
+			IConsolePrintF(CC_DEFAULT, "  Size: %d x %d", i->location.w, i->location.h);
+			delete i;
 			return 1;
 		}
 		default: NOT_REACHED(); break;
